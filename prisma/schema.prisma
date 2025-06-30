@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model employee {
+  employee_id Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(255)
+  email       String  @unique @db.VarChar(255)
+  phone       String? @db.VarChar(20)
+  department  String? @db.VarChar(255)
+  position    String? @db.VarChar(255)
+  users       users[]
+  visit       visit[]
+}
+
+model security {
+  security_id   Int     @id @default(autoincrement())
+  security_name String  @db.VarChar(255)
+  users         users[]
+  visit         visit[]
+}
+
+model teammember {
+  team_member_id Int    @id @default(autoincrement())
+  visit_id       Int?
+  member_name    String @db.VarChar(255)
+  visit          visit? @relation(fields: [visit_id], references: [visit_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  user_id       Int             @id @default(autoincrement())
+  username      String          @unique @db.VarChar(100)
+  password      String          @db.VarChar(255)
+  role          user_role_enum
+  employee_id   Int?
+  security_id   Int?
+  notifications notifications[]
+  employee      employee?       @relation(fields: [employee_id], references: [employee_id], onUpdate: NoAction)
+  security      security?       @relation(fields: [security_id], references: [security_id], onUpdate: NoAction)
+}
+
+model notifications {
+  notif_id   Int      @id @default(autoincrement())
+  message    String
+  user_id    Int
+  mark_read  Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model visit {
+  visit_id              Int                     @id @default(autoincrement())
+  visitor_id            Int?
+  employee_id           Int?
+  security_id           Int?
+  visit_category        new_visit_category_enum
+  entry_method          entry_method_enum
+  vehicle_number        String?                 @db.VarChar(20)
+  check_in_time         DateTime?               @db.Timestamp(6)
+  check_out_time        DateTime?               @db.Timestamp(6)
+  qr_code               String?                 @db.VarChar(255)
+  verification_status   Boolean?                @default(false)
+  safety_permit         Bytes?
+  brings_team           Boolean?                @default(false)
+  team_members_quantity Int?
+  entry_start_date      DateTime                @db.Date
+  teammember            teammember[]
+  employee              employee?               @relation(fields: [employee_id], references: [employee_id], onUpdate: NoAction)
+  security              security?               @relation(fields: [security_id], references: [security_id], onUpdate: NoAction)
+  visitor               visitor?                @relation(fields: [visitor_id], references: [visitor_id], onUpdate: NoAction)
+}
+
+model visitor {
+  visitor_id        Int       @id @default(autoincrement())
+  name              String    @db.VarChar(100)
+  company_id        Int
+  id_number         String    @unique(map: "unique_id_number") @db.VarChar(255)
+  contact_phone     String    @db.VarChar(15)
+  contact_email     String?   @db.VarChar(100)
+  address           String?
+  registration_date DateTime? @default(now()) @db.Timestamp(6)
+  id_card           Bytes?
+  visit             visit[]
+  company           company   @relation(fields: [company_id], references: [company_id], onDelete: SetNull, onUpdate: NoAction)
+}
+
+model company {
+  company_id   Int       @id @default(autoincrement())
+  company_name String    @unique @db.VarChar(255)
+  visitor      visitor[]
+}
+
+model FormConfig {
+  id     Int  @id @default(1)
+  fields Json
+}
+
+enum entry_method_enum {
+  Walking
+  Vehicle_Roda_Dua
+  Vehicle_Roda_Empat
+}
+
+enum user_role_enum {
+  user
+  security
+  admin
+  sec_admin
+}
+
+enum new_visit_category_enum {
+  Meeting___Visits           @map("Meeting & Visits")
+  Delivery
+  Working__Project___Repair_ @map("Working (Project & Repair)")
+  VIP
+}

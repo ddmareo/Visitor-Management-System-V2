@@ -1,0 +1,17 @@
+version: '3.3'
+
+services:
+  vms-app:
+    image: vms-app  
+    container_name: vms-ct
+    ports:
+      - "3333:3333"
+    restart: always
+
+
+#     networks:
+#       - vms_net 
+
+# networks:
+#   vms_net:
+#     driver: bridge
