@@ -28,16 +28,6 @@ const visitCategoryMapping = {
 } as const;
 
 export async function GET(request: Request) {
-  const origin = request.headers.get("origin");
-  const allowedOrigin = process.env.FRONTEND_URL;
-
-  if (origin && allowedOrigin && !origin.startsWith(allowedOrigin)) {
-    return new NextResponse(null, {
-      status: 403,
-      statusText: "Forbidden",
-    });
-  }
-
   const csrfToken = request.headers.get("x-csrf-token");
 
   if (!csrfToken || !tokens.verify(secret, csrfToken)) {
