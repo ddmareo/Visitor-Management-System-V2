@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const origin = request.headers.get("origin");
-  const allowedOrigin = process.env.NEXT_PUBLIC_FRONTEND_URL;
+  const allowedOrigin = process.env.FRONTEND_URL;
 
   if (origin && allowedOrigin && !origin.startsWith(allowedOrigin)) {
     return new NextResponse(null, {
