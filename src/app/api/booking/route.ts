@@ -38,6 +38,15 @@ export async function GET(request: Request) {
     });
   }
 
+  const csrfToken = request.headers.get("x-csrf-token");
+
+  if (!csrfToken || !tokens.verify(secret, csrfToken)) {
+    return new NextResponse(null, {
+      status: 403,
+      statusText: "Invalid CSRF token",
+    });
+  }
+
   try {
     const employees = await prisma.employee.findMany({
       select: { employee_id: true, name: true },

@@ -178,7 +178,13 @@ const Page = () => {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await axios.get("/api/register");
+        const csrfRes = await axios.get("/api/csrf");
+        const csrfToken = csrfRes.data.csrfToken;
+        const response = await axios.get("/api/register", {
+          headers: {
+            "x-csrf-token": csrfToken,
+          },
+        });
         if (Array.isArray(response.data)) {
           setCompanies(response.data);
         } else {

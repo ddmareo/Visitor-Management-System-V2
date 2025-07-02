@@ -104,7 +104,13 @@ const Page = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("/api/booking");
+        const csrfRes = await axios.get("/api/csrf");
+        const csrfToken = csrfRes.data.csrfToken;
+        const response = await axios.get("/api/booking", {
+          headers: {
+            "x-csrf-token": csrfToken,
+          },
+        });
 
         setCategories(response.data.visitCategories);
         setMethods(response.data.entryMethods);
