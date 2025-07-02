@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { encrypt } from "@/utils/encryption";
@@ -15,6 +15,20 @@ export default function Home() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get("/api/csrf");
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error("Failed to fetch CSRF token:", error);
+      }
+    };
+
+    fetchCsrfToken();
+  }, []);
 
   const handleSubmit = async (event: { preventDefault: () => void }) => {
     event.preventDefault();
@@ -46,6 +60,7 @@ export default function Home() {
       const response = await axios.post("/api/visitors/checknik", {
         nik: encryptedNIK,
         token: turnstileToken,
+        csrfToken,
       });
       sessionStorage.setItem("visitorNIK", encryptedNIK);
 
@@ -135,11 +150,11 @@ export default function Home() {
 
               <button
                 type="submit"
-                disabled={isLoading || !turnstileToken}
+                disabled={isLoading || !turnstileToken || !csrfToken}
                 className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-[#33FFC9] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transform transition-all duration-200 ease-in-out hover:scale-[1.02] dark:bg-emerald-500 dark:hover:bg-emerald-600 flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed">
                 {isLoading ? (
                   <span>Memproses...</span>
-                ) : !turnstileToken ? (
+                ) : !turnstileToken || !csrfToken ? (
                   <span>Loading...</span>
                 ) : (
                   <>

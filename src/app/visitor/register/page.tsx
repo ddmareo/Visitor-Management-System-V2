@@ -32,6 +32,7 @@ const Page = () => {
   const [showNewCompanyField, setShowNewCompanyField] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
   const [formConfig, setFormConfig] = useState<FormField[]>([]);
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +198,19 @@ const Page = () => {
   }, [router]);
 
   useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get("/api/csrf");
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error("Failed to fetch CSRF token:", error);
+      }
+    };
+
+    fetchCsrfToken();
+  }, []);
+
+  useEffect(() => {
     const storedNIK = sessionStorage.getItem("visitorNIK");
     if (storedNIK) {
       try {
@@ -299,6 +313,7 @@ const Page = () => {
     try {
       const submitFormData = new FormData();
       submitFormData.append("token", turnstileToken);
+      submitFormData.append("csrfToken", csrfToken || "");
       Object.entries(formData).forEach(([key, value]) => {
         if (key === "nomorktp") {
           const encryptedNIK = encrypt(value);
@@ -587,9 +602,9 @@ const Page = () => {
           <div className="flex justify-center items-center mt-8">
             <button
               type="submit"
-              disabled={isLoading || !turnstileToken}
+              disabled={isLoading || !turnstileToken || !csrfToken}
               className="text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-gray-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:text-black dark:bg-white dark:hover:bg-gray-100 dark:focus:ring-gray-300 disabled:opacity-70 disabled:cursor-not-allowed">
-              {!turnstileToken
+              {!turnstileToken || !csrfToken
                 ? "Loading..."
                 : isLoading
                 ? "Mendaftar..."

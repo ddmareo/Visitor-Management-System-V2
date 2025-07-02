@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { decrypt } from "@/utils/encryption";
+import csrf from "csrf";
+
+const tokens = new csrf();
+const secret = process.env.CSRF_SECRET || tokens.secretSync();
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
-  const { nik, token } = await request.json();
+  const { nik, token, csrfToken } = await request.json();
+
+  if (!tokens.verify(secret, csrfToken)) {
+    return NextResponse.json({ error: "Invalid CSRF token" }, { status: 403 });
+  }
 
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
   if (!secretKey) {

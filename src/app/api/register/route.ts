@@ -3,19 +3,31 @@ import { PrismaClient } from "@prisma/client";
 import sharp from "sharp";
 import { encryptBinary } from "@/utils/encryption";
 import heicConvert from "heic-convert";
+import csrf from "csrf";
 
 const prisma = new PrismaClient();
+
+const tokens = new csrf();
+const secret = process.env.CSRF_SECRET || tokens.secretSync();
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const token = formData.get("token") as string;
+    const csrfToken = formData.get("csrfToken") as string;
 
     const secretKey = process.env.TURNSTILE_SECRET_KEY;
     if (!secretKey) {
       return NextResponse.json(
         { error: "Server misconfigured" },
         { status: 500 }
+      );
+    }
+
+    if (!tokens.verify(secret, csrfToken)) {
+      return NextResponse.json(
+        { error: "Invalid CSRF token" },
+        { status: 403 }
       );
     }
 

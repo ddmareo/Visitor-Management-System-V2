@@ -34,6 +34,7 @@ const Page = () => {
   const [teamMemberCount, setTeamMemberCount] = useState<number>(1);
   const [teamMembers, setTeamMembers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [formData, setFormData] = useState({
     employee: 0,
@@ -43,6 +44,19 @@ const Page = () => {
     vehicle: "",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get("/api/csrf");
+        setCsrfToken(response.data.csrfToken);
+      } catch (error) {
+        console.error("Failed to fetch CSRF token:", error);
+      }
+    };
+
+    fetchCsrfToken();
+  }, []);
 
   useEffect(() => {
     const checkNIK = async () => {
@@ -235,6 +249,7 @@ const Page = () => {
       formDataToSubmit.append("vehicle", formData.vehicle);
       formDataToSubmit.append("brings_team", bringTeam ? "true" : "false");
       formDataToSubmit.append("token", turnstileToken);
+      formDataToSubmit.append("csrfToken", csrfToken || "");
 
       if (bringTeam && teamMembers.length > 0) {
         formDataToSubmit.append("teammemberscount", teamMemberCount.toString());
@@ -575,9 +590,9 @@ const Page = () => {
           <div className="flex justify-center items-center mt-8">
             <button
               type="submit"
-              disabled={!turnstileToken || isSubmitting}
+              disabled={!turnstileToken || !csrfToken || isSubmitting}
               className="text-white bg-black hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-gray-500 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:text-black dark:bg-white dark:hover:bg-gray-100 dark:focus:ring-gray-300 disabled:opacity-70 disabled:cursor-not-allowed">
-              {!turnstileToken
+              {!turnstileToken || !csrfToken
                 ? "Loading..."
                 : isSubmitting
                 ? "Memesan..."
