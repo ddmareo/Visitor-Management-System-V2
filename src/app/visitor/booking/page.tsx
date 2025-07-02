@@ -104,11 +104,7 @@ const Page = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("/api/booking", {
-          headers: {
-            "X-CSRF-Token": process.env.NEXT_PUBLIC_CSRF_TOKEN,
-          },
-        });
+        const response = await axios.get("/api/booking");
 
         setCategories(response.data.visitCategories);
         setMethods(response.data.entryMethods);

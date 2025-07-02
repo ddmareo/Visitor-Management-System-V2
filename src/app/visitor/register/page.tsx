@@ -178,11 +178,7 @@ const Page = () => {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await axios.get("/api/register", {
-          headers: {
-            "X-CSRF-Token": process.env.NEXT_PUBLIC_CSRF_TOKEN,
-          },
-        });
+        const response = await axios.get("/api/register");
         if (Array.isArray(response.data)) {
           setCompanies(response.data);
         } else {

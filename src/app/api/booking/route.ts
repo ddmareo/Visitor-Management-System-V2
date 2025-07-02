@@ -28,12 +28,6 @@ const visitCategoryMapping = {
 } as const;
 
 export async function GET(request: Request) {
-  const csrfToken = request.headers.get("X-CSRF-Token");
-
-  if (!csrfToken || csrfToken !== process.env.NEXT_PUBLIC_CSRF_TOKEN) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const origin = request.headers.get("origin");
   const allowedOrigin = process.env.FRONTEND_URL;
 
