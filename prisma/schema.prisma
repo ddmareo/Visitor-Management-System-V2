@@ -85,6 +85,8 @@ model visitor {
   address           String?
   registration_date DateTime? @default(now()) @db.Timestamp(6)
   id_card           Bytes?
+  face_scan         Bytes
+  face_descriptor   Float[]
   visit             visit[]
   company           company   @relation(fields: [company_id], references: [company_id], onDelete: SetNull, onUpdate: NoAction)
 }
