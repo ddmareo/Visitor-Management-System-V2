@@ -9,7 +9,7 @@ import React, {
 import { AlertCircle } from "lucide-react";
 
 export interface CameraProps {
-  onCapture: (imageData: string) => void;
+  onCapture: (imageBlob: Blob) => void;
   onStreamReady: (stream: MediaStream) => void;
 }
 
@@ -124,8 +124,17 @@ const CameraObject = forwardRef<CameraRef, CameraProps>(
 
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imageData = canvas.toDataURL("image/jpeg", 0.8);
-        onCapture(imageData);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              onCapture(blob);
+            } else {
+              console.error("Failed to create blob from canvas");
+            }
+          },
+          "image/jpeg",
+          0.8
+        );
       } catch (err) {
         console.error("Error capturing image:", err);
       }
