@@ -1,6 +1,7 @@
 import * as faceapi from "face-api.js";
 import { Canvas, Image } from "canvas";
 import path from "path";
+import { initializeModels } from "./model-loader";
 
 faceapi.env.monkeyPatch({
   Canvas: Canvas as unknown as typeof HTMLCanvasElement,
@@ -43,7 +44,7 @@ export async function getFaceDescriptor(imageBuffer: Buffer): Promise<{
 }> {
   try {
     if (!modelsLoaded) {
-      const loaded = await loadServerModels();
+      const loaded = await initializeModels();
       if (!loaded) {
         return {
           success: false,
@@ -96,7 +97,7 @@ export function compareDescriptors(
     const maxDistance = 1.0;
     const score = Math.max(0, 1 - distance / maxDistance);
 
-    const threshold = 0.6; // Lower threshold = stricter matching
+    const threshold = 0.4; // Lower threshold = stricter matching
     const isMatch = distance <= threshold;
 
     return { isMatch, distance, score };
