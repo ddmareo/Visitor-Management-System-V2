@@ -1,3 +1,4 @@
+//qr
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -48,6 +49,7 @@ export async function GET(
                 company_name: true,
               },
             },
+            face_descriptor: true,
           },
         },
         employee: {
@@ -90,6 +92,7 @@ export async function GET(
       company_institution: visit.visitor?.company?.company_name,
       team_members: visit.teammember.map((member) => member.member_name),
       visit_category: mappedCategory,
+      face_descriptor: visit.visitor?.face_descriptor || null,
     };
 
     return new Response(JSON.stringify(transformedVisit), {

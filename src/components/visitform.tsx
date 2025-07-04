@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { QrCode, Search } from "lucide-react";
+import { Check, QrCode, Search } from "lucide-react";
 import QrScannerPopup from "./qrscannerwindow";
 import axios from "axios";
 import { useSession } from "next-auth/react";
+import FaceScanModal from "./facescanmodal";
 
 interface VisitsData {
   visit_id: string;
@@ -23,6 +24,7 @@ interface VisitsData {
   brings_team: boolean;
   team_members_quantity?: number;
   team_members?: string;
+  face_descriptor?: number[];
 }
 
 const Page = () => {
@@ -33,6 +35,11 @@ const Page = () => {
   const [isCheckinIn, setIsCheckingIn] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { data: session } = useSession();
+
+  // verif states
+  const [showCamera, setShowCamera] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const handleQrScanSuccess = (scannedUrl: string) => {
     setQrCode(scannedUrl);
@@ -57,6 +64,14 @@ const Page = () => {
     } else {
       setError("Please enter a QR code");
     }
+  };
+
+  const handleVerificationComplete = (success: boolean, name?: string) => {
+    setShowCamera(false);
+    if (success) {
+      fetchVisitsData(qrCode);
+    }
+    console.log(name + " successfully verified.");
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -450,30 +465,54 @@ const Page = () => {
           </div>
 
           <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-            <div className="flex justify-end">
-              {!(visitsData.check_in_time && visitsData.check_out_time) &&
-                session?.user?.role === "security" && (
-                  <button
-                    className={`inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors ${
-                      isCheckinIn || isCheckingOut
-                        ? "opacity-50 cursor-not-allowed"
-                        : visitsData.check_in_time
-                        ? "bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700 focus:ring-red-500"
-                        : "bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 focus:ring-green-500"
-                    }`}
-                    onClick={
-                      visitsData.check_in_time ? handleCheckOut : handleCheckIn
-                    }
-                    disabled={isCheckinIn || isCheckingOut}>
-                    {isCheckinIn
-                      ? "Checking In..."
-                      : isCheckingOut
-                      ? "Checking Out..."
-                      : visitsData.check_in_time
-                      ? "Check Out"
-                      : "Check In"}
-                  </button>
-                )}
+            <div className="flex justify-between items-center">
+              {visitsData.verification_status && (
+                <div className="flex items-center text-green-600 dark:text-green-400">
+                  <Check className="w-4 h-4 mr-2" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    Visitor verified
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-end w-full">
+                {!(visitsData.check_in_time && visitsData.check_out_time) &&
+                  session?.user?.role === "security" && (
+                    <>
+                      {!visitsData.verification_status ? (
+                        <button
+                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 focus:ring-blue-500"
+                          onClick={() => setShowCamera(true)}
+                          disabled={isVerifying}>
+                          {isVerifying ? "Verifying..." : "Verify Face"}
+                        </button>
+                      ) : (
+                        <button
+                          className={`inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors ${
+                            isCheckinIn || isCheckingOut
+                              ? "opacity-50 cursor-not-allowed"
+                              : visitsData.check_in_time
+                              ? "bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-700 focus:ring-red-500"
+                              : "bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 focus:ring-green-500"
+                          }`}
+                          onClick={
+                            visitsData.check_in_time
+                              ? handleCheckOut
+                              : handleCheckIn
+                          }
+                          disabled={isCheckinIn || isCheckingOut}>
+                          {isCheckinIn
+                            ? "Checking In..."
+                            : isCheckingOut
+                            ? "Checking Out..."
+                            : visitsData.check_in_time
+                            ? "Check Out"
+                            : "Check In"}
+                        </button>
+                      )}
+                    </>
+                  )}
+              </div>
             </div>
           </div>
         </div>
@@ -483,6 +522,16 @@ const Page = () => {
         <QrScannerPopup
           onClose={() => setShowQrScanner(false)}
           onScanSuccess={handleQrScanSuccess}
+        />
+      )}
+
+      {showCamera && (
+        <FaceScanModal
+          mode="verify"
+          visitId={visitsData?.visit_id}
+          faceDescriptor={visitsData?.face_descriptor}
+          onVerificationComplete={handleVerificationComplete}
+          onClose={() => setShowCamera(false)}
         />
       )}
 

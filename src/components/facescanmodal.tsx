@@ -10,6 +10,7 @@ import {
   DETECTION_INTERVAL,
   FACE_CENTER_THRESHOLD_X,
   FACE_CENTER_THRESHOLD_Y,
+  GuidanceColorState,
 } from "@/utils/facescan-guide";
 import {
   cropImageToAspectRatio,
@@ -37,17 +38,16 @@ interface BaseProps {
 interface RegisterProps extends BaseProps {
   mode: "register";
   onRegisterConfirm: (imageBlob: Blob) => void; // Pass the blob to parent
-  userRegistrationData?: never;
-  referenceImage?: never;
+  visitorId?: never;
+  faceDescriptor?: never;
   onVerificationComplete?: never;
 }
 
 interface VerifyProps extends BaseProps {
   mode: "verify";
-  userIdNumber: string;
-  onVerificationComplete: (success: boolean, userName?: string) => void;
-  onRegisterConfirm?: never;
-  userRegistrationData?: never;
+  visitId?: string;
+  faceDescriptor?: number[];
+  onVerificationComplete: (success: boolean, name?: string) => void;
 }
 
 export type FaceScanModalProps = RegisterProps | VerifyProps;
@@ -58,7 +58,10 @@ export default function FaceScanModal(props: FaceScanModalProps) {
   // State machine
   const [modalState, setModalState] = useState<ModalState>("loading_models");
   const [guidanceMessage, setGuidanceMessage] = useState("Loading models...");
+  const [guidanceColorState, setGuidanceColorState] =
+    useState<GuidanceColorState>("blue");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [modelScore, setModelScore] = useState<number | null>(null);
 
   // Camera state
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -106,6 +109,7 @@ export default function FaceScanModal(props: FaceScanModalProps) {
 
           // Update guidance message
           setGuidanceMessage(guidanceResult.message);
+          setGuidanceColorState(guidanceResult.colorState);
 
           // Auto-capture logic
           if (guidanceResult.status === "valid") {
@@ -279,31 +283,35 @@ export default function FaceScanModal(props: FaceScanModalProps) {
       const verifyProps = props as VerifyProps;
       const formData = new FormData();
       formData.append("faceScan", imageBlob, "face.jpg");
-      formData.append("id_number", verifyProps.userIdNumber);
+      formData.append(
+        "faceDescriptor",
+        JSON.stringify(verifyProps.faceDescriptor)
+      );
 
-      const response = await fetch("/api/visit/verify", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `/api/visits/verify/${verifyProps.visitId}`,
+        {
+          method: "PUT",
+          body: formData,
+        }
+      );
 
       const result = await response.json();
 
       if (result.success) {
         setModalState("success");
         setGuidanceMessage("Verification successful!");
-        verifyProps.onVerificationComplete(true, result.user_name);
         setTimeout(() => onClose(), 2000);
+        verifyProps.onVerificationComplete(true);
       } else {
         setModalState("error");
         setErrorMessage(result.error || "Verification failed");
-        verifyProps.onVerificationComplete(false);
+        setModelScore(result.score);
       }
     } catch (error) {
       console.error("Verification error:", error);
       setModalState("error");
       setErrorMessage("Network error during verification");
-      const verifyProps = props as VerifyProps;
-      verifyProps.onVerificationComplete(false);
     }
   };
 
@@ -311,6 +319,14 @@ export default function FaceScanModal(props: FaceScanModalProps) {
     setModalState("guiding");
     setErrorMessage(null);
     setGuidanceMessage("Position your face in the frame...");
+  };
+
+  const handleClose = () => {
+    if (mode === "verify" && modalState === "error") {
+      const verifyProps = props as VerifyProps;
+      verifyProps.onVerificationComplete(false);
+    }
+    onClose();
   };
 
   const renderContent = () => {
@@ -349,17 +365,27 @@ export default function FaceScanModal(props: FaceScanModalProps) {
               <div className="absolute inset-0 z-20 pointer-events-none">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div
-                    className="border-2 dashed rounded-full transition-colors duration-300 border-blue-500/50 animate-pulse"
+                    className={`border-2 border-y dashed rounded-full transition-all duration-300 ${
+                      guidanceColorState === "red"
+                        ? "border-red-500/70 animate-pulse"
+                        : guidanceColorState === "yellow"
+                        ? "border-yellow-500/70 animate-pulse"
+                        : guidanceColorState === "green"
+                        ? "border-green-500/70"
+                        : "border-blue-500/50 animate-pulse"
+                    }`}
                     style={{
-                      width: `${(1 - 2 * FACE_CENTER_THRESHOLD_X) * 100}%`,
-                      height: `${(1 - 2 * FACE_CENTER_THRESHOLD_Y) * 100}%`,
-                      maxWidth: "70%",
-                      maxHeight: "70%",
+                      width: `${(1 - 2 * FACE_CENTER_THRESHOLD_X) * 100 + 40}%`,
+                      height: `${
+                        (1 - 2 * FACE_CENTER_THRESHOLD_Y) * 100 + 40
+                      }%`,
+                      maxWidth: "85%",
+                      maxHeight: "85%",
                     }}
                   />
                 </div>
 
-                <div className="absolute top-16 left-0 right-0 text-center p-2">
+                <div className="absolute bottom-10 left-0 right-0 text-center p-2">
                   <p className="text-sm bg-black/40 px-2 py-1 rounded backdrop-blur-sm inline-block text-white">
                     {guidanceMessage}
                   </p>
@@ -403,14 +429,27 @@ export default function FaceScanModal(props: FaceScanModalProps) {
           <div className="flex items-center justify-center h-full bg-red-600/90">
             <div className="text-center p-4">
               <XCircle className="h-16 w-16 text-white mx-auto mb-2" />
-              <p className="text-white font-semibold mb-4">
-                {errorMessage || "An error occurred"}
-              </p>
+              <span className="text-white flex flex-col gap-2 items-center">
+                <p>
+                  Score:{" "}
+                  {modelScore != null
+                    ? (modelScore * 100).toFixed(2) + "%"
+                    : "N/A"}
+                </p>
+                <p className="text-white font-semibold mb-4">
+                  {errorMessage || "An error occurred"}
+                </p>
+              </span>
               <button
                 onClick={handleRetry}
-                className="px-4 py-2 bg-white/20 text-white rounded hover:bg-white/30 transition-colors">
+                className="px-4 py-2 bg-white/20 text-white rounded hover:bg-white/30 transition-colors mr-2">
                 <RotateCcw className="inline-block h-4 w-4 mr-1" />
                 Retry
+              </button>
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 bg-white/20 text-white rounded hover:bg-white/30 transition-colors">
+                Cancel
               </button>
             </div>
           </div>
@@ -429,7 +468,7 @@ export default function FaceScanModal(props: FaceScanModalProps) {
             {renderContent()}
 
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="absolute top-4 right-4 bg-black/50 rounded-full p-2 text-white hover:bg-black/70 transition-colors z-50"
               aria-label="Close">
               <X className="h-6 w-6" />
