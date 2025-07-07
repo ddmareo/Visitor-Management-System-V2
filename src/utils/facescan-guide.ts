@@ -1,11 +1,18 @@
 import * as faceapi from "face-api.js";
 
-export const FACE_CENTER_THRESHOLD_X = 0.45;
-export const FACE_CENTER_THRESHOLD_Y = 0.4;
-export const FACE_SIZE_MIN_THRESHOLD = 0.4; // Face should be at least 15% of video height
-export const FACE_SIZE_MAX_THRESHOLD = 0.6; // Face should be at most 45% of video height
-export const FACE_SIZE_OPTIMAL_MIN = 0.4; // Optimal range start
-export const FACE_SIZE_OPTIMAL_MAX = 0.5; // Optimal range end
+export const FACE_CENTER_RANGE_X = { min: 0.35, max: 0.65 };
+export const FACE_CENTER_RANGE_Y = { min: 0.3, max: 0.7 };
+
+export const FACE_SIZE_RANGE = {
+  min: 0.25,
+  max: 0.75,
+  optimal_min: 0.35,
+  optimal_max: 0.65,
+};
+
+export const POSITION_BUFFER = 0.05;
+export const SIZE_BUFFER = 0.05;
+
 export const DETECTION_INTERVAL = 150;
 export const AUTO_CAPTURE_DELAY = 1500;
 
@@ -103,13 +110,13 @@ function detectFaceDistance(
   const box = detection.detection.box;
   const faceHeightRatio = box.height / videoHeight;
 
-  if (faceHeightRatio < FACE_SIZE_MIN_THRESHOLD) {
+  if (faceHeightRatio < FACE_SIZE_RANGE.min) {
     return {
       status: "too_far",
       distance: "far",
       faceHeightRatio,
     };
-  } else if (faceHeightRatio > FACE_SIZE_MAX_THRESHOLD) {
+  } else if (faceHeightRatio > FACE_SIZE_RANGE.max) {
     return {
       status: "too_close",
       distance: "close",
@@ -139,7 +146,6 @@ function validateFacePosition(
   const faceCenterX = box.x + box.width / 2;
   const faceCenterY = box.y + box.height / 2;
 
-  // Check distance first
   const distanceResult = detectFaceDistance(detection, videoHeight);
 
   if (distanceResult.status !== "optimal") {
@@ -155,13 +161,15 @@ function validateFacePosition(
     };
   }
 
-  // Check centering
+  const faceCenterXRatio = faceCenterX / videoWidth;
+  const faceCenterYRatio = faceCenterY / videoHeight;
+
   const isCenteredX =
-    faceCenterX > videoWidth * FACE_CENTER_THRESHOLD_X &&
-    faceCenterX < videoWidth * (1 - FACE_CENTER_THRESHOLD_X);
+    faceCenterXRatio >= FACE_CENTER_RANGE_X.min &&
+    faceCenterXRatio <= FACE_CENTER_RANGE_X.max;
   const isCenteredY =
-    faceCenterY > videoHeight * FACE_CENTER_THRESHOLD_Y &&
-    faceCenterY < videoHeight * (1 - FACE_CENTER_THRESHOLD_Y);
+    faceCenterYRatio >= FACE_CENTER_RANGE_Y.min &&
+    faceCenterYRatio <= FACE_CENTER_RANGE_Y.max;
 
   if (isCenteredX && isCenteredY) {
     return {
@@ -173,18 +181,31 @@ function validateFacePosition(
     };
   } else {
     let message = "Please center your face";
+
     if (!isCenteredX && !isCenteredY) {
       message = "Please center your face";
     } else if (!isCenteredX) {
-      message =
-        faceCenterX < videoWidth * 0.5
-          ? "Move slightly right"
-          : "Move slightly left";
+      const centerThreshold = 0.5;
+      const bufferZone = POSITION_BUFFER;
+
+      if (faceCenterXRatio < centerThreshold - bufferZone) {
+        message = "Move slightly right";
+      } else if (faceCenterXRatio > centerThreshold + bufferZone) {
+        message = "Move slightly left";
+      } else {
+        message = "Please center your face";
+      }
     } else if (!isCenteredY) {
-      message =
-        faceCenterY < videoHeight * 0.5
-          ? "Move slightly down"
-          : "Move slightly up";
+      const centerThreshold = 0.5;
+      const bufferZone = POSITION_BUFFER;
+
+      if (faceCenterYRatio < centerThreshold - bufferZone) {
+        message = "Move slightly down";
+      } else if (faceCenterYRatio > centerThreshold + bufferZone) {
+        message = "Move slightly up";
+      } else {
+        message = "Please center your face";
+      }
     }
 
     return {
@@ -238,15 +259,20 @@ export function processGuidance(
       videoHeight
     );
 
-    // Determine color based on status
     let colorState: GuidanceColorState;
     if (positionResult.status === "valid") {
       colorState = "green";
-    } else if (
-      positionResult.status === "too_far" ||
-      positionResult.status === "too_close"
-    ) {
-      colorState = "yellow";
+    } else if (positionResult.status === "off_center") {
+      const detection = detections[0];
+      const box = detection.detection.box;
+      const faceCenterX = (box.x + box.width / 2) / videoWidth;
+      const faceCenterY = (box.y + box.height / 2) / videoHeight;
+
+      const isCloseToCenter =
+        Math.abs(faceCenterX - 0.5) < 0.15 &&
+        Math.abs(faceCenterY - 0.5) < 0.15;
+
+      colorState = isCloseToCenter ? "green" : "yellow";
     } else {
       colorState = "yellow";
     }

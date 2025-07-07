@@ -8,8 +8,8 @@ import {
   processGuidance,
   AUTO_CAPTURE_DELAY,
   DETECTION_INTERVAL,
-  FACE_CENTER_THRESHOLD_X,
-  FACE_CENTER_THRESHOLD_Y,
+  FACE_CENTER_RANGE_X,
+  FACE_CENTER_RANGE_Y,
   GuidanceColorState,
 } from "@/utils/facescan-guide";
 import {
@@ -350,6 +350,7 @@ export default function FaceScanModal(props: FaceScanModalProps) {
               ref={cameraRef}
               onCapture={handleCapture}
               onStreamReady={handleStreamReady}
+              mode={mode}
             />
 
             {modalState === "initializing_camera" && (
@@ -375,9 +376,15 @@ export default function FaceScanModal(props: FaceScanModalProps) {
                         : "border-blue-500/50 animate-pulse"
                     }`}
                     style={{
-                      width: `${(1 - 2 * FACE_CENTER_THRESHOLD_X) * 100 + 40}%`,
+                      width: `${
+                        (FACE_CENTER_RANGE_X.max - FACE_CENTER_RANGE_X.min) *
+                          100 +
+                        40
+                      }%`,
                       height: `${
-                        (1 - 2 * FACE_CENTER_THRESHOLD_Y) * 100 + 40
+                        (FACE_CENTER_RANGE_Y.max - FACE_CENTER_RANGE_Y.min) *
+                          100 +
+                        30
                       }%`,
                       maxWidth: "85%",
                       maxHeight: "85%",
@@ -462,11 +469,16 @@ export default function FaceScanModal(props: FaceScanModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-transparent p-4 w-full h-full max-w-xl mx-4">
-        <div className="relative w-full h-full max-h-full flex items-center justify-center">
-          <div className="aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden relative shadow-lg w-full h-auto max-h-[95vh] max-w-md md:max-h-[90vh] md:w-auto md:h-[90vh]">
+      <div className="bg-transparent p-2 sm:p-4 w-full h-full">
+        <div className="relative w-full h-full flex items-center justify-center">
+          <div
+            className="aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden relative shadow-lg 
+                          w-full h-full max-h-[100vh] 
+                          sm:w-auto sm:h-[95vh] sm:max-h-[95vh] sm:max-w-md
+                          md:h-[90vh] md:max-h-[90vh] md:max-w-lg
+                          lg:h-[85vh] lg:max-h-[85vh] lg:max-w-xl
+                          xl:h-[80vh] xl:max-h-[80vh] xl:max-w-2xl">
             {renderContent()}
-
             <button
               onClick={handleClose}
               className="absolute top-4 right-4 bg-black/50 rounded-full p-2 text-white hover:bg-black/70 transition-colors z-50"

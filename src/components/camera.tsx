@@ -11,6 +11,7 @@ import { AlertCircle } from "lucide-react";
 export interface CameraProps {
   onCapture: (imageBlob: Blob) => void;
   onStreamReady: (stream: MediaStream) => void;
+  mode?: "register" | "verify";
 }
 
 export interface CameraRef {
@@ -19,7 +20,7 @@ export interface CameraRef {
 }
 
 const CameraObject = forwardRef<CameraRef, CameraProps>(
-  ({ onCapture, onStreamReady }, ref) => {
+  ({ onCapture, onStreamReady, mode }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [error, setError] = useState<string | null>(null);
@@ -32,16 +33,20 @@ const CameraObject = forwardRef<CameraRef, CameraProps>(
         return;
       }
 
+      const facingMode = mode === "verify" ? "environment" : "user";
+
       const hdConstraints = {
         video: {
-          facingMode: "user",
+          facingMode: facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
       };
 
       const basicConstraints = {
-        video: true,
+        video: {
+          facingMode: facingMode,
+        },
       };
 
       try {
@@ -83,7 +88,7 @@ const CameraObject = forwardRef<CameraRef, CameraProps>(
           setError("Could not start camera.");
         }
       }
-    }, [onStreamReady]);
+    }, [onStreamReady, mode]);
 
     useEffect(() => {
       let mediaStream: MediaStream | null = null;
