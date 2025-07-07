@@ -97,7 +97,7 @@ export function compareDescriptors(
     const maxDistance = 1.0;
     const score = Math.max(0, 1 - distance / maxDistance);
 
-    const threshold = 0.4; // Lower threshold = stricter matching
+    const threshold = 0.5;
     const isMatch = distance <= threshold;
 
     return { isMatch, distance, score };
