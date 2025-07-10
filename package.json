@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
+    "@tensorflow/tfjs-node-gpu": "^4.22.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "csrf": "^3.1.0",
