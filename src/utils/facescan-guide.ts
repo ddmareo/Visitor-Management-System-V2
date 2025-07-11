@@ -92,7 +92,9 @@ export async function detectFace(
       videoElement,
       detectorOptions
     );
-    return detections.map((detection) => ({ detection }));
+    return detections.map((detection: faceapi.FaceDetection) => ({
+      detection,
+    }));
   } catch (error) {
     console.error("Error during client-side face detection:", error);
     return [];
