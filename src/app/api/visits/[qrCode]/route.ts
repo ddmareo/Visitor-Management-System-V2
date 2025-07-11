@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { decryptBinary } from "@/utils/encryption";
 
 const prisma = new PrismaClient();
 
@@ -50,6 +51,7 @@ export async function GET(
               },
             },
             face_descriptor: true,
+            face_scan: true,
           },
         },
         employee: {
@@ -84,6 +86,18 @@ export async function GET(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { safety_permit, ...visitWithoutSafetyPermit } = visit;
 
+    let faceScanBase64: string | null = null;
+    if (visit.visitor?.face_scan) {
+      try {
+        const decryptedFaceScan = decryptBinary(visit.visitor.face_scan);
+        faceScanBase64 = `data:image/jpeg;base64,${decryptedFaceScan.toString(
+          "base64"
+        )}`;
+      } catch (decryptError) {
+        console.error("Error decrypting face scan:", decryptError);
+      }
+    }
+
     const transformedVisit = {
       ...visitWithoutSafetyPermit,
       visitor_name: visit.visitor?.name || "-",
@@ -93,6 +107,7 @@ export async function GET(
       team_members: visit.teammember.map((member) => member.member_name),
       visit_category: mappedCategory,
       face_descriptor: visit.visitor?.face_descriptor || null,
+      face_scan: faceScanBase64,
     };
 
     return new Response(JSON.stringify(transformedVisit), {

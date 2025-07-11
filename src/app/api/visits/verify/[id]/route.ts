@@ -47,9 +47,41 @@ export async function PUT(
     }
 
     const visitId = parseInt(params.id, 10);
-
     const contentType = request.headers.get("content-type");
 
+    if (contentType?.includes("application/json")) {
+      const { manual } = await request.json();
+
+      if (manual === true) {
+        const updatedVisit = await prisma.visit.update({
+          where: {
+            visit_id: visitId,
+          },
+          data: {
+            verification_status: true,
+            security: {
+              connect: {
+                security_id: userWithSecurity.security.security_id,
+              },
+            },
+          },
+          include: {
+            visitor: true,
+            employee: true,
+            security: true,
+            teammember: true,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          user_name: updatedVisit.visitor?.name,
+          verification_method: "manual",
+        });
+      }
+    }
+
+    // Face recognition verification (existing logic)
     if (contentType?.includes("multipart/form-data")) {
       const formData = await request.formData();
       const faceScanFile = formData.get("faceScan") as File;
@@ -117,7 +149,6 @@ export async function PUT(
         );
       }
 
-      // Face verification successful - update visit status
       const updatedVisit = await prisma.visit.update({
         where: {
           visit_id: visitId,
@@ -142,8 +173,14 @@ export async function PUT(
         success: true,
         user_name: updatedVisit.visitor?.name,
         verification_score: comparisonResult.score,
+        verification_method: "face_recognition",
       });
     }
+
+    return NextResponse.json(
+      { error: "Invalid request format" },
+      { status: 400 }
+    );
   } catch (error) {
     console.error("Verification error:", error);
     return NextResponse.json(
