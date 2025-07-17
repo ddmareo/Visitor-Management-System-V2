@@ -49,49 +49,6 @@ type Stats = {
 };
 
 const VisitorDashboard = () => {
-  // ...existing state and hooks...
-
-  // --- Forecast Button Handler ---
-  const getNext30DaysForecast = async () => {
-    setPredictLoading(true);
-    setPredictResult(null);
-    try {
-      // Fetch the normalized sequence from public/data/last30.json
-      const seqRes = await fetch('/data/last30.json');
-      const sequence = await seqRes.json();
-      const response = await fetch('/api/visits/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sequence,
-          startDate: '2025-07-11', // use the current date as specified
-        })
-      });
-      const data = await response.json();
-      if (response.ok && data.forecast) {
-        setPredictResult({ success: true, message: 'Forecast generated! Check console for details.' });
-        data.forecast.forEach((day: any) => {
-          const topBins = day.timeBins
-            .map((value: number, idx: number) => ({ bin: idx, value }))
-            .sort((a: any, b: any) => b.value - a.value)
-            .slice(0, 2);
-          const binLabels = ['7–9', '9–11', '11–13', '13–15', '15–17', '17–19'];
-          console.log(`📅 ${day.date}: ${day.totalVisits.toFixed(1)} visits`);
-          console.log(`   Top Hours:`);
-          topBins.forEach((bin: any) =>
-            console.log(`     - ${binLabels[bin.bin]} (${bin.value.toFixed(1)} visits)`)
-          );
-        });
-      } else {
-        setPredictResult({ success: false, message: data.error || 'Forecast failed.' });
-      }
-    } catch (err) {
-      setPredictResult({ success: false, message: 'Forecast request failed.' });
-    } finally {
-      setPredictLoading(false);
-    }
-  };
-
   const [selectedPeriod, setSelectedPeriod] = useState("monthly");
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
@@ -99,9 +56,6 @@ const VisitorDashboard = () => {
       ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
       : String(now.getFullYear());
   });
-
-  const [predictLoading, setPredictLoading] = useState(false);
-  const [predictResult, setPredictResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const [visitData, setVisitData] = useState<VisitData[]>([]);
   const [departmentData, setDepartmentData] = useState<DepartmentData[]>([]);

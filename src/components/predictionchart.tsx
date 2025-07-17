@@ -41,7 +41,7 @@ const VisitorPredictionChart = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("daily");
   const [totalPredictedVisits, setTotalPredictedVisits] = useState(0);
-  const [topPeakHours, setTopPeakHours] = useState<string[]>([]);
+  const [, setTopPeakHours] = useState<string[]>([]);
 
   const filters = [
     { id: "daily", label: "Daily" },
@@ -250,7 +250,7 @@ const VisitorPredictionChart = () => {
           </ResponsiveContainer>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <p className="text-gray-600 dark:text-gray-300">Click "Generate Forecast" to load prediction data</p>
+            <p className="text-gray-600 dark:text-gray-300">Click &apos;Generate Forecast&apos; to load prediction data</p>
           </div>
         )}
       </div>
