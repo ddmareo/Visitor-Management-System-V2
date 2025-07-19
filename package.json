@@ -12,9 +12,11 @@
     "@prisma/client": "^5.20.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
+    "canvas": "^3.1.2",
     "csrf": "^3.1.0",
     "csv-parse": "^5.5.6",
     "date-fns-tz": "^3.2.0",
+    "face-api.js": "^0.22.2",
     "flatpickr": "^4.6.13",
     "heic-convert": "^2.1.0",
     "lucide-react": "^0.453.0",
@@ -51,5 +53,8 @@
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "overrides": {
+    "node-fetch": "2.6.7"
   }
 }

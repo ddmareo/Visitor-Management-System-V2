@@ -25,6 +25,13 @@ const defaultFormFields = [
     required: true,
     type: "file",
   },
+  {
+    id: "faceScan",
+    label: "Scan Wajah (Selfie)",
+    enabled: true,
+    required: true,
+    type: "file",
+  },
 ];
 
 export async function GET() {

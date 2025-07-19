@@ -38,6 +38,13 @@ const FormConfigPage = () => {
       required: true,
       type: "file",
     },
+    {
+      id: "faceScan",
+      label: "Scan Wajah (Selfie)",
+      enabled: true,
+      required: true,
+      type: "photo",
+    },
   ]);
 
   useEffect(() => {

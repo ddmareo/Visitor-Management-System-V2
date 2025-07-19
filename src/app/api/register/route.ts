@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { encryptBinary } from "@/utils/encryption";
 import heicConvert from "heic-convert";
 import csrf from "csrf";
+import { descriptorToArray, getFaceDescriptor } from "@/lib/face-api";
 
 const prisma = new PrismaClient();
 
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
     const phone = formData.get("phone") as string;
     const email = formData.get("email") as string | null;
     const address = formData.get("address") as string | null;
+    const faceScanFile = formData.get("faceScan") as File | null;
 
     if (!name || !company || !nomorktp || !phone) {
       return NextResponse.json(
@@ -65,6 +67,8 @@ export async function POST(request: Request) {
     }
 
     let encryptedImage: Buffer | null = null;
+    let encryptedFaceScan: Buffer | null = null;
+    let descriptorArray: number[] | null = null;
 
     if (idCardFile) {
       const fileArrayBuffer = await idCardFile.arrayBuffer();
@@ -152,6 +156,37 @@ export async function POST(request: Request) {
       encryptedImage = encryptBinary(watermarkedImage);
     }
 
+    if (faceScanFile) {
+      const blobArrayBuffer = await faceScanFile.arrayBuffer();
+      const blobBuffer = Buffer.from(blobArrayBuffer);
+
+      const compressedFaceScan = await sharp(blobBuffer)
+        .resize({
+          width: 720,
+          height: 1280,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 75 })
+        .toBuffer();
+
+      const descriptorResult = await getFaceDescriptor(blobBuffer);
+
+      if (!descriptorResult.success || !descriptorResult.descriptor) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: descriptorResult.error || "Failed to process face",
+          },
+          { status: 400 }
+        );
+      }
+
+      descriptorArray = descriptorToArray(descriptorResult.descriptor);
+
+      encryptedFaceScan = encryptBinary(compressedFaceScan);
+    }
+
     const existingVisitor = await prisma.visitor.findUnique({
       where: { id_number: nomorktp },
     });
@@ -191,6 +226,8 @@ export async function POST(request: Request) {
         ...(email ? { contact_email: email } : {}),
         ...(address ? { address: address } : {}),
         ...(encryptedImage ? { id_card: encryptedImage } : {}),
+        ...(encryptedFaceScan ? { face_scan: encryptedFaceScan } : {}),
+        ...(descriptorArray ? { face_descriptor: descriptorArray } : {}),
       },
     });
 

@@ -13,7 +13,8 @@ export async function middleware(req: NextRequest) {
       pathname === "/login" ||
       pathname.startsWith("/visitor") ||
       pathname === "/terms-conditions" ||
-      pathname === "/user-manual"
+      pathname === "/user-manual" ||
+      pathname.startsWith("/models")
     ) {
       return NextResponse.next();
     } else {
