@@ -30,7 +30,7 @@ const defaultFormFields = [
     label: "Scan Wajah (Selfie)",
     enabled: true,
     required: true,
-    type: "photo",
+    type: "file",
   },
 ];
 

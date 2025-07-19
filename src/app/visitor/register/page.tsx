@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Camera, X } from "lucide-react";
 import { encrypt, decrypt } from "@/utils/encryption";
 import Turnstile from "react-turnstile";
 import Async from "react-select/async";
 import heicConvert from "heic-convert/browser";
+import FaceScanModal from "@/components/facescanmodal";
+import { preloadGuideModels } from "@/utils/facescan-guide";
 
 interface Company {
   id: string;
@@ -35,6 +37,12 @@ const Page = () => {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [capturedImage, setCapturedImage] = useState<Blob | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedImagePreview, setCapturedImagePreview] = useState<
+    string | undefined
+  >();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -161,6 +169,35 @@ const Page = () => {
       );
     }
   };
+
+  // for image preview
+  const convertBlobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // load model on page render
+  useEffect(() => {
+    const initializeModels = async () => {
+      try {
+        console.log("Preloading face detection models...");
+        const success = await preloadGuideModels();
+        if (success) {
+          console.log("Face detection models preloaded successfully");
+        } else {
+          console.warn("Failed to preload face detection models");
+        }
+      } catch (error) {
+        console.error("Error preloading face detection models:", error);
+      }
+    };
+
+    initializeModels();
+  }, []);
 
   useEffect(() => {
     const fetchFormConfig = async () => {
@@ -309,6 +346,12 @@ const Page = () => {
       return;
     }
 
+    const faceScanField = formConfig.find((field) => field.id === "faceScan");
+    if (faceScanField?.enabled && faceScanField?.required && !capturedImage) {
+      setError("Scan wajah diperlukan untuk melanjutkan pendaftaran.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -332,6 +375,10 @@ const Page = () => {
         submitFormData.append("idCard", selectedFile);
       }
 
+      if (capturedImage) {
+        submitFormData.append("faceScan", capturedImage, "face_scan.jpg");
+      }
+
       const response = await axios.post("/api/register", submitFormData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -346,6 +393,23 @@ const Page = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCameraClose = () => {
+    setShowCamera(false);
+  };
+
+  const handleCameraCapture = async (imageBlob: Blob) => {
+    setCapturedImage(imageBlob);
+
+    const previewBase64 = await convertBlobToBase64(imageBlob);
+    setCapturedImagePreview(previewBase64);
+
+    setShowCamera(false);
+  };
+
+  const handleRemoveCapturedImage = () => {
+    setCapturedImage(null);
   };
 
   return (
@@ -575,6 +639,56 @@ const Page = () => {
               )}
             </div>
           )}
+
+          {formConfig.find((field) => field.id === "faceScan")?.enabled && (
+            <div className="mb-5">
+              <label
+                htmlFor="faceScan"
+                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Scan Wajah (Selfie)
+                {formConfig.find((field) => field.id === "faceScan")
+                  ?.required && <RequiredIndicator />}
+              </label>
+              {capturedImage ? (
+                <div className="space-y-2">
+                  <div className="relative w-full max-w-md mx-auto">
+                    <div className="aspect-[3/4] bg-gray-900 rounded-lg overflow-hidden">
+                      <img
+                        src={capturedImagePreview}
+                        alt="Captured face"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveCapturedImage}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 focus:ring-2 focus:ring-red-300 focus:ring-offset-2">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCamera(true)}
+                    className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 flex items-center justify-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Ambil ulang foto
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 flex items-center justify-center gap-2">
+                  <Camera className="h-5 w-5" />
+                  Buka kamera
+                </button>
+              )}
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Ambil foto selfie untuk verifikasi identitas saat check in
+              </p>
+            </div>
+          )}
+
           <div className="flex items-start mb-5">
             <div className="flex items-center h-5">
               <input
@@ -628,6 +742,14 @@ const Page = () => {
             />
           </div>
         </form>
+
+        {showCamera && (
+          <FaceScanModal
+            mode="register"
+            onClose={handleCameraClose}
+            onRegisterConfirm={handleCameraCapture}
+          />
+        )}
       </div>
     </main>
   );

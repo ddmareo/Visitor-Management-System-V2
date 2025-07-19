@@ -380,7 +380,7 @@ const Page = () => {
                     required
                   />
                   <span className="ml-2 text-sm text-black dark:text-white">
-                    TIdak
+                    Tidak
                   </span>
                 </label>
               </div>
