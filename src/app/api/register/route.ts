@@ -217,18 +217,32 @@ export async function POST(request: Request) {
       }
     }
 
+    const visitorData: any = {
+      name,
+      company_id: companyId,
+      id_number: nomorktp,
+      contact_phone: phone,
+    };
+
+    if (email) {
+      visitorData.contact_email = email;
+    }
+    
+    if (address) {
+      visitorData.address = address;
+    }
+    
+    if (encryptedImage) {
+      visitorData.id_card = encryptedImage;
+    }
+    
+    if (encryptedFaceScan && descriptorArray) {
+      visitorData.face_scan = encryptedFaceScan;
+      visitorData.face_descriptor = descriptorArray;
+    }
+
     await prisma.visitor.create({
-      data: {
-        name,
-        company_id: companyId,
-        id_number: nomorktp,
-        contact_phone: phone,
-        ...(email ? { contact_email: email } : {}),
-        ...(address ? { address: address } : {}),
-        ...(encryptedImage ? { id_card: encryptedImage } : {}),
-        ...(encryptedFaceScan ? { face_scan: encryptedFaceScan } : {}),
-        ...(descriptorArray ? { face_descriptor: descriptorArray } : {}),
-      },
+      data: visitorData,
     });
 
     return NextResponse.json(
