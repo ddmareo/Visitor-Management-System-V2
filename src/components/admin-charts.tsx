@@ -19,6 +19,7 @@ import {
   Building2,
   Building,
 } from "lucide-react";
+import VisitorPredictionChart from "./predictionchart";
 
 type VisitData = {
   day?: string;
@@ -434,7 +435,7 @@ const VisitorDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-8">
           <div className="flex items-center mb-4">
             <Clock className="w-5 h-5 text-gray-700 dark:text-gray-300 mr-2" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -496,6 +497,8 @@ const VisitorDashboard = () => {
             )}
           </div>
         </div>
+
+        <VisitorPredictionChart />
       </div>
     </div>
   );
