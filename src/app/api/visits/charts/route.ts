@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 const prisma = new PrismaClient();
 
 const roundToNearestInterval = (time: Date) => {
-  const localTime = new Date(time.getTime() + 7 * 60 * 60 * 1000);
+  const localTime = new Date(time);
   const hours = localTime.getHours();
   const minutes = localTime.getMinutes();
 
