@@ -8,6 +8,7 @@ import { encrypt } from "@/utils/encryption";
 import Image from "next/image";
 import logoWhite from "./images/logo_white.png";
 import Turnstile from "react-turnstile";
+import { isValidNIK } from "@/utils/validation";
 
 export default function Home() {
   const router = useRouter();
@@ -49,8 +50,8 @@ export default function Home() {
       return;
     }
 
-    if (nikWithoutSpaces.length !== 16) {
-      setError("NIK harus terdiri dari 16 digit.");
+    if (!isValidNIK(nikWithoutSpaces)) {
+      setError("Format NIK tidak valid.");
       setIsLoading(false);
       return;
     }
@@ -106,7 +107,7 @@ export default function Home() {
               </div>
               <h2 className="text-2xl font-bold text-center">Selamat datang</h2>
               <p className="text-center text-indigo-100 mt-2">
-                Masukkan NIK (Nomor Induk Kependudukan) Anda
+                Masukkan NIK (Nomor Induk Kependudukan) atau Passport Anda
               </p>
             </div>
 
@@ -116,7 +117,7 @@ export default function Home() {
                 <label
                   htmlFor="NIK"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  NIK
+                  NIK/Passport
                 </label>
                 <div className="relative group">
                   <input

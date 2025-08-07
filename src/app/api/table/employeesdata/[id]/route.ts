@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
+import { isValidEmail } from "@/utils/validation";
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,16 @@ export async function PUT(
 
   try {
     const data = await req.json();
+
+    if (data.email) {
+      if (!isValidEmail(data.email)) {
+        return NextResponse.json(
+          { error: "Email tidak valid." },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedEmployee = await prisma.employee.update({
       where: {
         employee_id: parseInt(params.id, 10),

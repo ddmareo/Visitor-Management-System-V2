@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-auth";
+import { isValidEmail } from "@/utils/validation";
 
 const prisma = new PrismaClient();
 
@@ -43,6 +44,10 @@ export async function POST(request: Request) {
         { message: "Missing required fields" },
         { status: 400 }
       );
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ message: "Email invalid" }, { status: 400 });
     }
 
     const newEmployee = await prisma.employee.create({

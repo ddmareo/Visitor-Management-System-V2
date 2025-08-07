@@ -12,6 +12,7 @@ import { decrypt } from "@/utils/encryption";
 import sharp from "sharp";
 import heicConvert from "heic-convert";
 import csrf from "csrf";
+import { formatPlatNomor } from "@/utils/validation";
 
 const prisma = new PrismaClient();
 
@@ -219,7 +220,7 @@ export async function POST(request: Request) {
         entry_method: method,
         vehicle_number:
           method === "Vehicle_Roda_Dua" || method === "Vehicle_Roda_Empat"
-            ? vehicle
+            ? formatPlatNomor(vehicle)
             : null,
         team_members_quantity: teammemberscount || 0,
         qr_code: qrCodeUUID,

@@ -1,4 +1,5 @@
 import { withAuth } from "@/lib/with-auth";
+import { formatPlatNomor, isValidPlatNomor } from "@/utils/validation";
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 
@@ -23,6 +24,18 @@ export async function PUT(
 
   try {
     const data = await req.json();
+
+    let vehicleNumber: string | null = null;
+    if (data.vehicle_number?.trim()) {
+      if (!isValidPlatNomor(data.vehicle_number)) {
+        return NextResponse.json(
+          { error: "Format plat nomor tidak valid." },
+          { status: 400 }
+        );
+      }
+      vehicleNumber = formatPlatNomor(data.vehicle_number.trim());
+    }
+
     const updatedVisit = await prisma.visit.update({
       where: {
         visit_id: parseInt(params.id, 10),
@@ -34,7 +47,7 @@ export async function PUT(
           ] || data.visit_category,
         entry_start_date: new Date(data.entry_start_date),
         entry_method: data.entry_method,
-        vehicle_number: data.vehicle_number || null,
+        vehicle_number: vehicleNumber || null,
       },
     });
     return NextResponse.json(updatedVisit);

@@ -10,6 +10,7 @@ import Async from "react-select/async";
 import heicConvert from "heic-convert/browser";
 import FaceScanModal from "@/components/facescanmodal";
 import { preloadGuideModels } from "@/utils/facescan-guide";
+import { isValidEmail } from "@/utils/validation";
 
 interface Company {
   id: string;
@@ -343,6 +344,17 @@ const Page = () => {
 
     if (!formData.company || formData.company.trim() === "") {
       setError("Perusahaan/Institusi harus dipilih atau diisi.");
+      return;
+    }
+
+    const emailField = formConfig.find((field) => field.id === "email");
+    if (emailField?.enabled && emailField?.required) {
+      setError("Email diperlukan untuk melanjutkan pendaftaran.");
+      return;
+    }
+
+    if (isValidEmail(formData.email)) {
+      setError("Email tidak valid");
       return;
     }
 

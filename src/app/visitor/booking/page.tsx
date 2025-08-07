@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import Turnstile from "react-turnstile";
 import Async from "react-select/async";
+import { isValidPlatNomor } from "@/utils/validation";
 
 const Page = () => {
   const router = useRouter();
@@ -235,6 +236,11 @@ const Page = () => {
       !safetyPermitFile
     ) {
       setFileError("Safety permit diperlukan untuk Working (Project & Repair)");
+      return;
+    }
+
+    if (!isValidPlatNomor(formData.vehicle)) {
+      setError("Plat nomor tidak valid");
       return;
     }
 

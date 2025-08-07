@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parse } from "csv-parse/sync";
 import { PrismaClient } from "@prisma/client";
 import { withAuth } from "@/lib/with-auth";
+import { isValidEmail } from "@/utils/validation";
 
 const prisma = new PrismaClient();
 
@@ -53,28 +54,65 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const result = await prisma.employee.createMany({
-        data: records.map(
-          (record: {
+      const validationErrors: string[] = [];
+      const validRecords: any[] = [];
+
+      records.forEach(
+        (
+          record: {
             name: string;
             email: string;
             phone: string;
             department: string;
             position: string;
-          }) => ({
-            name: record.name,
-            email: record.email,
-            phone: record.phone,
-            department: record.department,
-            position: record.position,
-          })
-        ),
+          },
+          index: number
+        ) => {
+          const rowErrors: string[] = [];
+
+          if (!isValidEmail(record.email)) {
+            rowErrors.push(`Invalid email format: ${record.email}`);
+          }
+
+          if (!record.name?.trim()) {
+            rowErrors.push("Name is required");
+          }
+
+          if (rowErrors.length > 0) {
+            validationErrors.push(`Row ${index + 2}: ${rowErrors.join(", ")}`); // +2 because index starts at 0 and first row is header
+          } else {
+            validRecords.push({
+              name: record.name.trim(),
+              email: record.email.trim().toLowerCase(),
+              phone: record.phone.trim(),
+              department: record.department.trim(),
+              position: record.position.trim(),
+            });
+          }
+        }
+      );
+
+      if (validationErrors.length > 0) {
+        return NextResponse.json(
+          {
+            message: "Validation errors found",
+            errors: validationErrors,
+            validRecords: validRecords.length,
+            totalRecords: records.length,
+          },
+          { status: 400 }
+        );
+      }
+
+      const result = await prisma.employee.createMany({
+        data: validRecords,
         skipDuplicates: true,
       });
 
       return NextResponse.json({
         message: "CSV import successful",
         imported: result.count,
+        validated: validRecords.length,
       });
     } catch (parseError) {
       console.error("Error parsing CSV file:", parseError);
