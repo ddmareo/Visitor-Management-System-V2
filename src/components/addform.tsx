@@ -3,6 +3,8 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 import { X } from "lucide-react";
+import PhoneInput from "react-phone-number-input";
+import 'react-phone-number-input/style.css'
 
 interface AddFormProps {
   isOpen: boolean;
@@ -278,12 +280,15 @@ const AddForm: React.FC<AddFormProps> = ({
               <label htmlFor="phone" className={labelClass}>
                 Phone
               </label>
-              <input
-                type="tel"
-                id="phone"
+              <PhoneInput
                 name="phone"
-                className={inputClass}
-                onChange={handleChange}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, phone: value || "" }));
+                }}                
+                defaultCountry="ID"
+                countryCallingCodeEditable={false}
+                className="w-full"
+                international
               />
             </div>
             <div className="mb-4">

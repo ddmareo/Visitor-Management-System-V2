@@ -11,6 +11,8 @@ import heicConvert from "heic-convert/browser";
 import FaceScanModal from "@/components/facescanmodal";
 import { preloadGuideModels } from "@/utils/facescan-guide";
 import { isValidEmail } from "@/utils/validation";
+import 'react-phone-number-input/style.css'
+import PhoneInput from 'react-phone-number-input'
 
 interface Company {
   id: string;
@@ -348,12 +350,12 @@ const Page = () => {
     }
 
     const emailField = formConfig.find((field) => field.id === "email");
-    if (emailField?.enabled && emailField?.required) {
+    if (emailField?.enabled && emailField?.required && !formData.email) {
       setError("Email diperlukan untuk melanjutkan pendaftaran.");
       return;
     }
 
-    if (isValidEmail(formData.email)) {
+    if (!isValidEmail(formData.email)) {
       setError("Email tidak valid");
       return;
     }
@@ -553,14 +555,16 @@ const Page = () => {
                 Nomor Telepon
                 <RequiredIndicator />
               </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                required
+              <PhoneInput
+                placeholder="8123456789"
+                value={formData.phone || undefined}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, phone: value || "" }));
+                }}
+                defaultCountry="ID"
+                countryCallingCodeEditable={false}
+                className="w-full"
+                international
               />
             </div>
             {formConfig.find((field) => field.id === "email")?.enabled && (

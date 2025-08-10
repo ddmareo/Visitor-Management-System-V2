@@ -19,6 +19,7 @@ import AddForm from "./addform";
 import EditForm from "./editform";
 import CSVPreviewModal from "@/components/csv-preview";
 import QRCodeModal from "@/components/qrcode-preview";
+import { formatPhoneNumberIntl } from "react-phone-number-input";
 
 interface Visitor {
   visitor_id: string;
@@ -1069,7 +1070,7 @@ const Table = () => {
           <td className="px-6 py-4">{visitor.name}</td>
           <td className="px-6 py-4">{visitor.company_name}</td>
           <td className="px-6 py-4">{visitor.id_number}</td>
-          <td className="px-6 py-4">{visitor.contact_phone}</td>
+          <td className="px-6 py-4">{formatPhoneNumberIntl(visitor.contact_phone)}</td>
           <td className="px-6 py-4">{visitor.contact_email}</td>
           <td className="px-6 py-4">{visitor.address}</td>
           <td className="px-6 py-4">
@@ -1086,7 +1087,7 @@ const Table = () => {
           {commonRowCheckbox(employee.employee_id)}
           <td className="px-6 py-4">{employee.name}</td>
           <td className="px-6 py-4">{employee.email}</td>
-          <td className="px-6 py-4">{employee.phone}</td>
+          <td className="px-6 py-4">{formatPhoneNumberIntl(employee.phone || "")}</td>
           <td className="px-6 py-4">{employee.department}</td>
           <td className="px-6 py-4">{employee.position}</td>
           {actionLogo(employee)}

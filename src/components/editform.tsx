@@ -3,6 +3,8 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 import { X } from "lucide-react";
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
 
 interface EditFormProps {
   isOpen: boolean;
@@ -263,14 +265,16 @@ const EditForm: React.FC<EditFormProps> = ({
               <label htmlFor="contact_phone" className={labelClass}>
                 Phone
               </label>
-              <input
-                type="tel"
-                id="contact_phone"
+              <PhoneInput
                 name="contact_phone"
-                value={(formData as VisitorsData)?.contact_phone || ""}
-                className={inputClass}
-                onChange={handleChange}
-                required
+                value={(formData as VisitorsData)?.contact_phone || undefined}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, contact_phone: value || "" }));
+                }}                
+                defaultCountry="ID"
+                countryCallingCodeEditable={false}
+                className="w-full"
+                international
               />
             </div>
             <div className="mb-4">
@@ -338,13 +342,16 @@ const EditForm: React.FC<EditFormProps> = ({
               <label htmlFor="phone" className={labelClass}>
                 Phone
               </label>
-              <input
-                type="tel"
-                id="phone"
+              <PhoneInput
                 name="phone"
-                value={(formData as EmployeesData)?.phone || ""}
-                className={inputClass}
-                onChange={handleChange}
+                value={(formData as EmployeesData)?.phone || undefined}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, phone: value || "" }));
+                }}                
+                defaultCountry="ID"
+                countryCallingCodeEditable={false}
+                className="w-full"
+                international
               />
             </div>
             <div className="mb-4">

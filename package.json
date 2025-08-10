@@ -27,6 +27,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-flatpickr": "^3.10.13",
+    "react-phone-number-input": "^3.4.12",
     "react-select": "^5.10.1",
     "react-turnstile": "^1.1.4",
     "recharts": "^2.13.3",

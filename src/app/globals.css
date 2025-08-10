@@ -25,3 +25,83 @@ body {
     text-wrap: balance;
   }
 }
+
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  background-color: rgb(249 250 251); /* bg-gray-50 */
+  border: 1px solid rgb(209 213 219); /* border-gray-300 */
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 0.625rem; /* p-2.5 */
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem;
+  color: rgb(17 24 39); /* text-gray-900 */
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.PhoneInput:focus-within {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-color: #0a0a0a; /* focus:border-blue-500 */
+  box-shadow: 0 0 0 1px #0a0a0a; /* focus:ring-blue-500 */
+}
+
+.PhoneInputInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  margin-left: 0.5rem;
+  color: inherit;
+  font-size: inherit;
+}
+
+.PhoneInputInput::placeholder {
+  color: rgb(156 163 175); /* placeholder-gray-400 */
+}
+
+.PhoneInputCountry {
+  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.PhoneInputCountrySelect {
+  border: none;
+  background: transparent;
+  outline: none;
+  margin-right: 0.25rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.PhoneInputCountrySelect:focus {
+  outline: none;
+}
+
+.PhoneInputCountryIcon {
+  margin-right: 0.25rem;
+}
+
+/* Dark mode support - matches your dark:bg-gray-700 dark:border-gray-600 etc. */
+.dark .PhoneInput {
+  background-color: rgb(55 65 81); /* dark:bg-gray-700 */
+  border-color: rgb(75 85 99); /* dark:border-gray-600 */
+  color: white; /* dark:text-white */
+}
+
+.dark .PhoneInput:focus-within {
+  border-color: #0a0a0a; /* dark:focus:border-blue-500 */
+  box-shadow: 0 0 0 1px rgb(255 255 255); /* dark:focus:ring-blue-500 */
+}
+
+.PhoneInputCountrySelect option {
+  color: black !important; /* Force dropdown options to always be black */
+  background-color: white !important; /* Force dropdown background to always be white */
+}
+
+/* Force dropdown text to always be black regardless of theme */
+.dark .PhoneInputCountrySelect option {
+  color: black !important;
+  background-color: white !important;
+}
