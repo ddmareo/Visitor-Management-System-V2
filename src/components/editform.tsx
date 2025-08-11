@@ -5,6 +5,8 @@ import axios from "axios";
 import { X } from "lucide-react";
 import PhoneInput from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
+import ReactCountryFlag from 'react-country-flag';
+import { passportLocales } from "@/utils/validation";
 
 interface EditFormProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ interface VisitorsData {
   name: string;
   company_id: string;
   id_number: string;
+  country: string;
   contact_phone: string;
   contact_email: string;
   address: string;
@@ -85,6 +88,8 @@ const EditForm: React.FC<EditFormProps> = ({
   };
 
   const [formData, setFormData] = useState<Partial<FormDataType>>({});
+  const [visitorMode, setVisitorMode] = useState<"WNI" | "WNA">("WNI");
+  const [country, setCountry] = useState("ID");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [securityPersonnel, setSecurityPersonnel] = useState<Security[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -134,6 +139,25 @@ const EditForm: React.FC<EditFormProps> = ({
     }
   }, [isOpen, selectedTable]);
 
+  useEffect(() => {
+    if (isOpen && initialData && selectedTable === "visitorsdata") {
+      const visitorData = initialData as VisitorsData;
+      
+      // Determine mode based on existing country data
+      if (visitorData.country === "ID" || !visitorData.country) {
+        setVisitorMode("WNI");
+        setCountry("ID");
+      } else {
+        setVisitorMode("WNA");
+        setCountry(visitorData.country || "US");
+      }
+      
+      setFormData({
+        ...initialData,
+      });
+    }
+  }, [isOpen, initialData, selectedTable]);
+
   const fetchEmployees = async () => {
     try {
       const response = await axios.get(`/api/table/usersdata`);
@@ -162,6 +186,30 @@ const EditForm: React.FC<EditFormProps> = ({
       }
     } catch (error) {
       console.error("Error fetching companies:", error);
+    }
+  };
+
+  const handleModeToggle = (newMode: "WNI" | "WNA") => {
+    setVisitorMode(newMode);
+    
+    if (newMode === "WNI") {
+      setCountry("ID");
+      // Reset to original NIK value from initialData
+      const originalNik = (initialData as VisitorsData)?.id_number || "";
+      setFormData(prev => ({ 
+        ...prev, 
+        country: "ID", 
+        id_number: originalNik
+      }));
+    } else {
+      // Set default country for WNA based on current country or US
+      const defaultCountry = country === "ID" ? "US" : country;
+      setCountry(defaultCountry);
+      setFormData(prev => ({ 
+        ...prev, 
+        country: defaultCountry, 
+        id_number: "" // Clear passport field when switching to WNA
+      }));
     }
   };
 
@@ -248,18 +296,83 @@ const EditForm: React.FC<EditFormProps> = ({
               </select>
             </div>
             <div className="mb-4">
-              <label htmlFor="id_number" className={labelClass}>
-                ID Number
-              </label>
-              <input
-                type="text"
-                id="id_number"
-                name="id_number"
-                value={(formData as VisitorsData)?.id_number || ""}
-                className={inputClass}
-                onChange={handleChange}
-                required
-              />
+              <div className="flex items-center justify-between mb-3">
+                <label className={labelClass}>
+                  ID Type
+                </label>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-medium transition-colors ${
+                    visitorMode === "WNI" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"
+                  }`}>
+                    NIK (WNI)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleModeToggle(visitorMode === "WNI" ? "WNA" : "WNI")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                      visitorMode === "WNA" ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                        visitorMode === "WNA" ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                  <span className={`text-sm font-medium transition-colors ${
+                    visitorMode === "WNA" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"
+                  }`}>
+                    Passport (WNA)
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {visitorMode === "WNA" && (
+                  <div className="flex items-center gap-2 px-3 py-3 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-600">
+                    <ReactCountryFlag
+                      countryCode={country}
+                      svg
+                      style={{
+                        width: '1.5em',
+                        height: '1.5em',
+                      }}
+                      title={country}
+                    />
+                    <select
+                      id="country"
+                      value={country}
+                      onChange={(e) => {
+                        const newCountry = e.target.value;
+                        setCountry(newCountry);
+                        setFormData(prev => ({ ...prev, country: newCountry }));
+                      }}
+                      className="bg-transparent outline-none text-sm font-medium text-gray-900 dark:text-white border-none p-0 m-0 cursor-pointer"
+                    >
+                      {passportLocales.map((locale: string) => (
+                        <option key={locale} value={locale} className="dark:text-gray-900">
+                          {locale}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="relative group flex-1">
+                  <input
+                    type="text"
+                    id="id_number"
+                    name="id_number"
+                    value={(formData as VisitorsData)?.id_number || ""}
+                    onChange={handleChange}
+                    placeholder={visitorMode === "WNI" ? "XXXX XXXX XXXX XXXX" : "A1B2C3D4"}
+                    className="w-full px-4 py-3 text-black tracking-wider border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-200 ease-in-out font-medium 
+                    dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-400"
+                    maxLength={visitorMode === "WNI" ? 16 : 12}
+                    required
+                  />
+                  <div className="absolute inset-0 border-2 border-transparent group-hover:border-indigo-500 dark:group-hover:border-indigo-400 rounded-lg pointer-events-none transition-all duration-200 ease-in-out"></div>
+                </div>
+              </div>
             </div>
             <div className="mb-4">
               <label htmlFor="contact_phone" className={labelClass}>

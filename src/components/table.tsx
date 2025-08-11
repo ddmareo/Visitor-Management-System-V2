@@ -26,6 +26,7 @@ interface Visitor {
   name: string;
   company_name: string;
   id_number: string;
+  country: string;
   contact_phone: string;
   contact_email: string;
   address: string;

@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { encrypt } from "@/utils/encryption";
 import { isValidEmail, isValidNIK } from "@/utils/validation";
+import validator from 'validator';
 
 const prisma = new PrismaClient();
 
@@ -24,14 +25,23 @@ export async function PUT(
     if (data.id_number) {
       const nik = data.id_number.trim();
 
-      if (!/^\d{16}$/.test(nik) || !isValidNIK(nik)) {
-        return NextResponse.json(
-          { error: "Format NIK tidak valid." },
-          { status: 400 }
-        );
-      }
+      if (data.id_number.length == 16) {
+        if (!/^\d{16}$/.test(nik) || !isValidNIK(nik)) {
+          return NextResponse.json(
+            { error: "Format NIK tidak valid." },
+            { status: 400 }
+          );
+        }
 
       encryptedIdNumber = encrypt(nik);
+      } else {
+        if (!validator.isPassportNumber(nik.trim(), data.country)) {
+          return NextResponse.json(
+            { error: "Format Passport tidak valid." },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     if (data.contact_email) {
@@ -51,6 +61,7 @@ export async function PUT(
         name: data.name,
         company_id: data.company_id,
         id_number: encryptedIdNumber,
+        country: data.country,
         contact_phone: data.contact_phone,
         contact_email: data.contact_email,
         address: data.address,
