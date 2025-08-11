@@ -87,6 +87,7 @@ model visitor {
   id_card           Bytes?
   face_scan         Bytes?
   face_descriptor   Float[]   @default([])
+  country           String    @default("ID")
   visit             visit[]
   company           company   @relation(fields: [company_id], references: [company_id], onDelete: SetNull, onUpdate: NoAction)
 }

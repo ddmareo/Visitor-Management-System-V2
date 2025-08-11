@@ -8,7 +8,9 @@ import { encrypt } from "@/utils/encryption";
 import Image from "next/image";
 import logoWhite from "./images/logo_white.png";
 import Turnstile from "react-turnstile";
-import { isValidNIK } from "@/utils/validation";
+import { isValidNIK, passportLocales } from "@/utils/validation";
+import validator from 'validator';
+import ReactCountryFlag from "react-country-flag";
 
 export default function Home() {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const [mode, setMode] = useState<"WNI" | "WNA">("WNI");
+  const [country, setCountry] = useState("US");
 
   useEffect(() => {
     const fetchCsrfToken = async () => {
@@ -44,16 +48,23 @@ export default function Home() {
 
     const nikWithoutSpaces = nik.replace(/\s+/g, "");
 
-    if (!/^\d+$/.test(nikWithoutSpaces)) {
-      setError("NIK hanya boleh terdiri dari angka.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!isValidNIK(nikWithoutSpaces)) {
-      setError("Format NIK tidak valid.");
-      setIsLoading(false);
-      return;
+    if (mode === "WNI") {
+      if (!/^\d+$/.test(nikWithoutSpaces)) {
+        setError("NIK hanya boleh terdiri dari angka.");
+        setIsLoading(false);
+        return;
+      }
+      if (!isValidNIK(nikWithoutSpaces)) {
+        setError("Format NIK tidak valid.");
+        setIsLoading(false);
+        return;
+      }
+    } else {
+      if (!validator.isPassportNumber(nik.trim(), country)) {
+        setError("Format Passport tidak valid untuk negara yang dipilih.");
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -64,6 +75,9 @@ export default function Home() {
         csrfToken,
       });
       sessionStorage.setItem("visitorNIK", encryptedNIK);
+      if (mode === "WNA") {
+        sessionStorage.setItem("visitorCountry", country);
+      }
 
       if (response.data.exists) {
         router.push("/visitor/booking");
@@ -95,13 +109,9 @@ export default function Home() {
         <div className="w-full max-w-md">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
             {/* Card Header with Gradient */}
-            {/* <div className="bg-gradient-to-r from-indigo-500 to-blue-600 p-6 text-white"> */}
             <div className="bg-black p-6 text-white">
               <div className="flex items-center justify-center mb-4">
                 <div className="bg-white bg-opacity-25 p-3 rounded-full">
-                  {/* <CreditCard className="h-6 w-6 text-black" /> */}
-                  {/* <img src="./images/logo_white.png" alt="Logo" className="w-[100px] h-auto" /> */}
-
                   <Image src={logoWhite} alt="Logo White" width={150} />
                 </div>
               </div>
@@ -111,27 +121,82 @@ export default function Home() {
               </p>
             </div>
 
+            {/* Mode Toggle */}
+            <div className="p-6 pb-0">
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => setMode("WNI")}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                    mode === "WNI" 
+                      ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm" 
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  WNI (NIK)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("WNA")}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                    mode === "WNA" 
+                      ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm" 
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  WNA (Passport)
+                </button>
+              </div>
+            </div>
+
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-6">
               <div className="space-y-1">
                 <label
                   htmlFor="NIK"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  NIK/Passport
+                  {mode === "WNI" ? "NIK" : "Passport"}
                 </label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    id="NIK"
-                    value={nik}
-                    onChange={handleNIKChange}
-                    placeholder="XXXX XXXX XXXX XXXX"
-                    className="w-full px-4 py-3 text-center text-lg text-black tracking-wider border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-200 ease-in-out font-medium 
-                    dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-400"
-                    maxLength={19}
-                    required
-                  />
-                  <div className="absolute inset-0 border-2 border-transparent group-hover:border-indigo-500 dark:group-hover:border-indigo-400 rounded-lg pointer-events-none transition-all duration-200 ease-in-out"></div>
+                <div className="flex gap-2 items-center">
+                  {mode === "WNA" && (
+                    <div className="flex items-center gap-2 px-3 py-3 border border-gray-200 rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                      <ReactCountryFlag
+                        countryCode={country}
+                        svg
+                        style={{
+                          width: '1.5em',
+                          height: '1.5em',
+                        }}
+                        title={country}
+                      />
+                      <select
+                        id="country"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className="bg-transparent outline-none text-sm font-medium text-gray-900 dark:text-white border-none p-0 m-0 cursor-pointer"
+                      >
+                        {passportLocales.map((locale: string) => (
+                          <option key={locale} value={locale} className="dark:text-gray-900">
+                            {locale}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="relative group flex-1">
+                    <input
+                      type="text"
+                      id="NIK"
+                      value={nik}
+                      onChange={mode === "WNI" ? handleNIKChange : (e) => setNik(e.target.value)}
+                      placeholder={mode === "WNI" ? "XXXX XXXX XXXX XXXX" : "A1B2C3D4"}
+                      className="w-full px-4 py-3 text-center text-lg text-black tracking-wider border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-200 ease-in-out font-medium 
+                      dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-400"
+                      maxLength={mode === "WNI" ? 19 : undefined}
+                      required
+                    />
+                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-indigo-500 dark:group-hover:border-indigo-400 rounded-lg pointer-events-none transition-all duration-200 ease-in-out"></div>
+                  </div>
                 </div>
 
                 {error && (

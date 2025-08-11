@@ -54,6 +54,7 @@ export async function POST(request: Request) {
     const company = formData.get("company") as string;
     const isNewCompany = formData.get("isNewCompany") as string;
     const nomorktp = formData.get("nomorktp") as string;
+    const country = formData.get("country") as string;
     const phone = formData.get("phone") as string;
     const email = formData.get("email") as string | null;
     const address = formData.get("address") as string | null;
@@ -221,6 +222,7 @@ export async function POST(request: Request) {
       name,
       company_id: companyId,
       id_number: nomorktp,
+      country: country,
       contact_phone: phone,
     };
 

@@ -25,6 +25,7 @@
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "^18",
+    "react-country-flag": "^3.1.0",
     "react-dom": "^18",
     "react-flatpickr": "^3.10.13",
     "react-phone-number-input": "^3.4.12",
@@ -33,7 +34,8 @@
     "recharts": "^2.13.3",
     "sharp": "0.33.5",
     "sonner": "^1.7.1",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "validator": "^13.15.15"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -44,6 +46,7 @@
     "@types/react-dom": "^18",
     "@types/react-flatpickr": "^3.8.11",
     "@types/uuid": "^10.0.0",
+    "@types/validator": "^13.15.2",
     "eslint": "^8",
     "eslint-config-next": "14.2.14",
     "postcss": "^8",

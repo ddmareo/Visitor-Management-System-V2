@@ -393,6 +393,10 @@ const Page = () => {
         submitFormData.append("faceScan", capturedImage, "face_scan.jpg");
       }
 
+      if (sessionStorage.getItem("visitorCountry")) {
+        submitFormData.append("country", sessionStorage.getItem("visitorCountry") ?? 'ID');
+      }
+
       const response = await axios.post("/api/register", submitFormData, {
         headers: {
           "Content-Type": "multipart/form-data",
