@@ -7,15 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Department {
+  department_id Int        @id @default(autoincrement())
+  name          String     @unique @db.VarChar(255)
+  positions     Position[]
+  employees     employee[]
+}
+
+model Position {
+  position_id   Int        @id @default(autoincrement())
+  name          String     @db.VarChar(255)
+  department_id Int
+  department    Department @relation(fields: [department_id], references: [department_id], onDelete: Cascade)
+
+  employees     employee[]
+}
+
 model employee {
   employee_id Int     @id @default(autoincrement())
   name        String  @unique @db.VarChar(255)
   email       String  @unique @db.VarChar(255)
   phone       String? @db.VarChar(20)
-  department  String? @db.VarChar(255)
-  position    String? @db.VarChar(255)
-  users       users[]
-  visit       visit[]
+  department_id Int?       
+  position_id  Int?        
+  users        users[]
+  visit        visit[]
+
+  department   Department? @relation(fields: [department_id], references: [department_id], onUpdate: NoAction)
+  position     Position?   @relation(fields: [position_id], references: [position_id], onUpdate: NoAction)
 }
 
 model security {
