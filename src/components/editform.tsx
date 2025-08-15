@@ -3,9 +3,9 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 import { X } from "lucide-react";
-import PhoneInput from 'react-phone-number-input'
-import 'react-phone-number-input/style.css'
-import ReactCountryFlag from 'react-country-flag';
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import ReactCountryFlag from "react-country-flag";
 import { passportLocales } from "@/utils/validation";
 
 interface EditFormProps {
@@ -26,12 +26,23 @@ interface VisitorsData {
   address: string;
 }
 
+interface PositionData {
+  position_id: number;
+  name: string;
+  department_id: number;
+}
+
+interface DepartmentData {
+  department_id: number;
+  name: string;
+}
+
 interface EmployeesData {
   name: string;
   email: string;
   phone: string;
-  department: string;
-  position: string;
+  department_id: string;
+  position_id: string;
 }
 
 interface SecurityData {
@@ -63,7 +74,9 @@ type FormDataType =
   | SecurityData
   | UsersData
   | CompanyData
-  | VisitsData;
+  | VisitsData
+  | PositionData
+  | DepartmentData;
 
 const EditForm: React.FC<EditFormProps> = ({
   isOpen,
@@ -87,12 +100,22 @@ const EditForm: React.FC<EditFormProps> = ({
     company_name: string;
   };
 
+  type Department = {
+    department_id: number;
+    name: string;
+  };
+
   const [formData, setFormData] = useState<Partial<FormDataType>>({});
   const [visitorMode, setVisitorMode] = useState<"WNI" | "WNA">("WNI");
   const [country, setCountry] = useState("ID");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [securityPersonnel, setSecurityPersonnel] = useState<Security[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [positions, setPositions] = useState<PositionData[]>([]);
+  const [filteredPositions, setFilteredPositions] = useState<PositionData[]>(
+    []
+  );
 
   const formatDateForInput = (dateString: string | undefined): string => {
     if (!dateString) return "";
@@ -124,6 +147,12 @@ const EditForm: React.FC<EditFormProps> = ({
           ...initialData,
           entry_start_date: formatDateForInput(visits.entry_start_date),
         });
+      } else if (selectedTable === "positionsdata") {
+        const position = initialData as PositionData;
+        setFormData({
+          ...initialData,
+          department_id: position.department_id || "",
+        });
       } else {
         setFormData(initialData);
       }
@@ -136,13 +165,33 @@ const EditForm: React.FC<EditFormProps> = ({
       fetchSecurityPersonnel();
     } else if (isOpen && selectedTable === "visitorsdata") {
       fetchCompanies();
+    } else if (isOpen && selectedTable === "positionsdata") {
+      fetchDepartments();
+    } else if (isOpen && selectedTable === "employeesdata") {
+      fetchDepartments();
+      fetchAllPositions();
     }
   }, [isOpen, selectedTable]);
 
   useEffect(() => {
+    if (selectedTable === "employeesdata" && formData) {
+      const employeeData = formData as EmployeesData;
+      if (employeeData.department_id) {
+        const filtered = positions.filter(
+          (position) =>
+            position.department_id === parseInt(employeeData.department_id, 10)
+        );
+        setFilteredPositions(filtered);
+      } else {
+        setFilteredPositions([]);
+      }
+    }
+  }, [(formData as EmployeesData)?.department_id, positions, selectedTable]);
+
+  useEffect(() => {
     if (isOpen && initialData && selectedTable === "visitorsdata") {
       const visitorData = initialData as VisitorsData;
-      
+
       // Determine mode based on existing country data
       if (visitorData.country === "ID" || !visitorData.country) {
         setVisitorMode("WNI");
@@ -151,7 +200,7 @@ const EditForm: React.FC<EditFormProps> = ({
         setVisitorMode("WNA");
         setCountry(visitorData.country || "US");
       }
-      
+
       setFormData({
         ...initialData,
       });
@@ -166,6 +215,17 @@ const EditForm: React.FC<EditFormProps> = ({
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
+    }
+  };
+
+  const fetchAllPositions = async () => {
+    try {
+      const response = await axios.get("/api/table/employeesdata");
+      if (response.data.positions) {
+        setPositions(response.data.positions);
+      }
+    } catch (error) {
+      console.error("Error fetching positions:", error);
     }
   };
 
@@ -189,26 +249,37 @@ const EditForm: React.FC<EditFormProps> = ({
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get("/api/table/positionsdata");
+      if (response.data.department) {
+        setDepartments(response.data.department);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
   const handleModeToggle = (newMode: "WNI" | "WNA") => {
     setVisitorMode(newMode);
-    
+
     if (newMode === "WNI") {
       setCountry("ID");
       // Reset to original NIK value from initialData
       const originalNik = (initialData as VisitorsData)?.id_number || "";
-      setFormData(prev => ({ 
-        ...prev, 
-        country: "ID", 
-        id_number: originalNik
+      setFormData((prev) => ({
+        ...prev,
+        country: "ID",
+        id_number: originalNik,
       }));
     } else {
       // Set default country for WNA based on current country or US
       const defaultCountry = country === "ID" ? "US" : country;
       setCountry(defaultCountry);
-      setFormData(prev => ({ 
-        ...prev, 
-        country: defaultCountry, 
-        id_number: "" // Clear passport field when switching to WNA
+      setFormData((prev) => ({
+        ...prev,
+        country: defaultCountry,
+        id_number: "", // Clear passport field when switching to WNA
       }));
     }
   };
@@ -224,15 +295,26 @@ const EditForm: React.FC<EditFormProps> = ({
     } else if (
       name === "employee_id" ||
       name === "security_id" ||
-      name === "company_id"
+      name === "company_id" ||
+      name === "department_id" ||
+      name === "position_id"
     ) {
       value = parseInt(value, 10) as unknown as string;
     }
 
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    // If department changes, reset position
+    if (name === "department_id" && selectedTable === "employeesdata") {
+      setFormData({
+        ...formData,
+        [name]: value,
+        position_id: "", // Reset position when department changes
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -297,36 +379,45 @@ const EditForm: React.FC<EditFormProps> = ({
             </div>
             <div className="mb-4">
               <div className="flex items-center justify-between mb-3">
-                <label className={labelClass}>
-                  ID Type
-                </label>
+                <label className={labelClass}>ID Type</label>
                 <div className="flex items-center gap-3">
-                  <span className={`text-sm font-medium transition-colors ${
-                    visitorMode === "WNI" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"
-                  }`}>
+                  <span
+                    className={`text-sm font-medium transition-colors ${
+                      visitorMode === "WNI"
+                        ? "text-indigo-600 dark:text-indigo-400"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}>
                     NIK (WNI)
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleModeToggle(visitorMode === "WNI" ? "WNA" : "WNI")}
+                    onClick={() =>
+                      handleModeToggle(visitorMode === "WNI" ? "WNA" : "WNI")
+                    }
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                      visitorMode === "WNA" ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-700"
-                    }`}
-                  >
+                      visitorMode === "WNA"
+                        ? "bg-indigo-600"
+                        : "bg-gray-200 dark:bg-gray-700"
+                    }`}>
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
-                        visitorMode === "WNA" ? "translate-x-6" : "translate-x-1"
+                        visitorMode === "WNA"
+                          ? "translate-x-6"
+                          : "translate-x-1"
                       }`}
                     />
                   </button>
-                  <span className={`text-sm font-medium transition-colors ${
-                    visitorMode === "WNA" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"
-                  }`}>
+                  <span
+                    className={`text-sm font-medium transition-colors ${
+                      visitorMode === "WNA"
+                        ? "text-indigo-600 dark:text-indigo-400"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}>
                     Passport (WNA)
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 {visitorMode === "WNA" && (
                   <div className="flex items-center gap-2 px-3 py-3 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-600">
@@ -334,8 +425,8 @@ const EditForm: React.FC<EditFormProps> = ({
                       countryCode={country}
                       svg
                       style={{
-                        width: '1.5em',
-                        height: '1.5em',
+                        width: "1.5em",
+                        height: "1.5em",
                       }}
                       title={country}
                     />
@@ -345,12 +436,17 @@ const EditForm: React.FC<EditFormProps> = ({
                       onChange={(e) => {
                         const newCountry = e.target.value;
                         setCountry(newCountry);
-                        setFormData(prev => ({ ...prev, country: newCountry }));
+                        setFormData((prev) => ({
+                          ...prev,
+                          country: newCountry,
+                        }));
                       }}
-                      className="bg-transparent outline-none text-sm font-medium text-gray-900 dark:text-white border-none p-0 m-0 cursor-pointer"
-                    >
+                      className="bg-transparent outline-none text-sm font-medium text-gray-900 dark:text-white border-none p-0 m-0 cursor-pointer">
                       {passportLocales.map((locale: string) => (
-                        <option key={locale} value={locale} className="dark:text-gray-900">
+                        <option
+                          key={locale}
+                          value={locale}
+                          className="dark:text-gray-900">
                           {locale}
                         </option>
                       ))}
@@ -364,7 +460,9 @@ const EditForm: React.FC<EditFormProps> = ({
                     name="id_number"
                     value={(formData as VisitorsData)?.id_number || ""}
                     onChange={handleChange}
-                    placeholder={visitorMode === "WNI" ? "XXXX XXXX XXXX XXXX" : "A1B2C3D4"}
+                    placeholder={
+                      visitorMode === "WNI" ? "XXXX XXXX XXXX XXXX" : "A1B2C3D4"
+                    }
                     className="w-full px-4 py-3 text-black tracking-wider border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-200 ease-in-out font-medium 
                     dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-400"
                     maxLength={visitorMode === "WNI" ? 16 : 12}
@@ -382,8 +480,11 @@ const EditForm: React.FC<EditFormProps> = ({
                 name="contact_phone"
                 value={(formData as VisitorsData)?.contact_phone || undefined}
                 onChange={(value) => {
-                  setFormData(prev => ({ ...prev, contact_phone: value || "" }));
-                }}                
+                  setFormData((prev) => ({
+                    ...prev,
+                    contact_phone: value || "",
+                  }));
+                }}
                 defaultCountry="ID"
                 countryCallingCodeEditable={false}
                 className="w-full"
@@ -459,8 +560,8 @@ const EditForm: React.FC<EditFormProps> = ({
                 name="phone"
                 value={(formData as EmployeesData)?.phone || undefined}
                 onChange={(value) => {
-                  setFormData(prev => ({ ...prev, phone: value || "" }));
-                }}                
+                  setFormData((prev) => ({ ...prev, phone: value || "" }));
+                }}
                 defaultCountry="ID"
                 countryCallingCodeEditable={false}
                 className="w-full"
@@ -468,32 +569,51 @@ const EditForm: React.FC<EditFormProps> = ({
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="department" className={labelClass}>
+              <label htmlFor="department_id" className={labelClass}>
                 Department
               </label>
-              <input
-                type="text"
-                id="department"
-                name="department"
-                value={(formData as EmployeesData)?.department || ""}
+              <select
+                id="department_id"
+                name="department_id"
+                value={(formData as EmployeesData)?.department_id || ""}
                 className={inputClass}
                 onChange={handleChange}
-                required
-              />
+                required>
+                <option value="">Select department</option>
+                {departments.map((department) => (
+                  <option
+                    key={department.department_id}
+                    value={department.department_id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mb-4">
-              <label htmlFor="position" className={labelClass}>
+              <label htmlFor="position_id" className={labelClass}>
                 Position
               </label>
-              <input
-                type="text"
-                id="position"
-                name="position"
-                value={(formData as EmployeesData)?.position || ""}
+              <select
+                id="position_id"
+                name="position_id"
+                value={(formData as EmployeesData)?.position_id || ""}
                 className={inputClass}
                 onChange={handleChange}
                 required
-              />
+                disabled={!(formData as EmployeesData)?.department_id}>
+                <option value="">
+                  {(formData as EmployeesData)?.department_id
+                    ? "Select position"
+                    : "Select department first"}
+                </option>
+                {filteredPositions.map((position) => (
+                  <option
+                    key={position.position_id}
+                    value={position.position_id}>
+                    {position.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </>
         );
@@ -532,6 +652,65 @@ const EditForm: React.FC<EditFormProps> = ({
               required
             />
           </div>
+        );
+
+      case "departmentsdata":
+        return (
+          <div className="mb-4">
+            <label htmlFor="name" className={labelClass}>
+              Department Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={(formData as DepartmentData)?.name || ""}
+              className={inputClass}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        );
+
+      case "positionsdata":
+        return (
+          <>
+            <div className="mb-4">
+              <label htmlFor="name" className={labelClass}>
+                Position Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={(formData as PositionData)?.name || ""}
+                className={inputClass}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="department_id" className={labelClass}>
+                Department
+              </label>
+              <select
+                id="department_id"
+                name="department_id"
+                value={(formData as PositionData)?.department_id || ""}
+                className={inputClass}
+                onChange={handleChange}
+                required>
+                <option value="">Select department</option>
+                {departments.map((department) => (
+                  <option
+                    key={department.department_id}
+                    value={department.department_id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
         );
 
       case "usersdata":

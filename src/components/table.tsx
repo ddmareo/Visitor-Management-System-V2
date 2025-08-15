@@ -54,8 +54,10 @@ interface Employee {
   name: string;
   email: string;
   phone?: string;
-  department: string;
-  position: string;
+  department_name: string | null;
+  position_name: string | null;
+  department_id: number;
+  position_id: number;
 }
 
 interface Security {
@@ -98,6 +100,8 @@ interface TeamMember {
 type FormDataType =
   | Visitor
   | Company
+  | Department
+  | Position
   | Employee
   | Security
   | Users
@@ -110,6 +114,8 @@ const Table = () => {
   const [tableData, setTableData] = useState<
     | Visitor[]
     | Company[]
+    | Department[]
+    | Position[]
     | Employee[]
     | Security[]
     | Users[]
@@ -175,6 +181,10 @@ const Table = () => {
           setTableData(data.users);
         } else if (selectedTable === "visitorsdata") {
           setTableData(data.visitors);
+        } else if (selectedTable === "positionsdata") {
+          setTableData(data.positions);
+        } else if (selectedTable === "employeesdata") {
+          setTableData(data.employees);
         } else {
           setTableData(data);
         }
@@ -240,6 +250,10 @@ const Table = () => {
         switch (selectedTable) {
           case "visitorsdata":
             return (item as Visitor).visitor_id;
+          case "departmentsdata":
+            return (item as Department).department_id;
+          case "positionsdata":
+            return (item as Position).position_id;
           case "employeesdata":
             return (item as Employee).employee_id;
           case "securitydata":
@@ -417,6 +431,10 @@ const Table = () => {
       const { data } = await axios.get(`/api/table/${selectedTable}`);
       if (selectedTable === "usersdata") {
         setTableData(data.users);
+      } else if (selectedTable === "positionsdata") {
+        setTableData(data.positions);
+      } else if (selectedTable === "employeesdata") {
+        setTableData(data.employees);
       } else {
         setTableData(data);
       }
@@ -446,6 +464,10 @@ const Table = () => {
         setTableData(data.users);
       } else if (selectedTable === "visitorsdata") {
         setTableData(data.visitors);
+      } else if (selectedTable === "positionsdata") {
+        setTableData(data.positions);
+      } else if (selectedTable === "employeesdata") {
+        setTableData(data.employees);
       } else {
         setTableData(data);
       }
@@ -602,8 +624,8 @@ const Table = () => {
           employee.name,
           employee.email,
           employee.phone || "",
-          employee.department,
-          employee.position,
+          employee.department_name,
+          employee.position_name,
         ]
           .map((field) => `${field}`)
           .join(",");
@@ -655,6 +677,12 @@ const Table = () => {
         case "visitorsdata":
           id = selectedItem.visitor_id;
           break;
+        case "departmentsdata":
+          id = selectedItem.department_id;
+          break;
+        case "positionsdata":
+          id = selectedItem.position_id;
+          break;
         case "employeesdata":
           id = selectedItem.employee_id;
           break;
@@ -683,6 +711,10 @@ const Table = () => {
         setTableData(data.users);
       } else if (selectedTable === "visitorsdata") {
         setTableData(data.visitors);
+      } else if (selectedTable === "positionsdata") {
+        setTableData(data.positions);
+      } else if (selectedTable === "employeesdata") {
+        setTableData(data.employees);
       } else {
         setTableData(data);
       }
@@ -732,6 +764,22 @@ const Table = () => {
       case "companydata":
         return (filteredResults as Company[]).filter((company) =>
           Object.values(company).some(
+            (value) =>
+              value && value.toString().toLowerCase().includes(searchLower)
+          )
+        );
+
+      case "departmentsdata":
+        return (filteredResults as Department[]).filter((department) =>
+          Object.values(department).some(
+            (value) =>
+              value && value.toString().toLowerCase().includes(searchLower)
+          )
+        );
+
+      case "positionsdata":
+        return (filteredResults as Position[]).filter((position) =>
+          Object.values(position).some(
             (value) =>
               value && value.toString().toLowerCase().includes(searchLower)
           )
@@ -862,6 +910,39 @@ const Table = () => {
             </th>
             <th scope="col" className="px-6 py-3">
               Registration Date
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Action
+            </th>
+          </tr>
+        );
+      case "departmentsdata":
+        return (
+          <tr>
+            {commonCheckbox}
+            <th scope="col" className="px-6 py-3">
+              Department ID
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Department Name
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Action
+            </th>
+          </tr>
+        );
+      case "positionsdata":
+        return (
+          <tr>
+            {commonCheckbox}
+            <th scope="col" className="px-6 py-3">
+              Position ID
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Position Name
+            </th>
+            <th scope="col" className="px-6 py-3">
+              Department
             </th>
             <th scope="col" className="px-6 py-3">
               Action
@@ -1093,6 +1174,29 @@ const Table = () => {
           {actionLogo(visitor)}
         </tr>
       ));
+    } else if (selectedTable === "departmentsdata") {
+      return (filteredData as Department[]).map((department) => (
+        <tr
+          key={department.department_id}
+          className="bg-white border-b dark:bg-gray-800">
+          {commonRowCheckbox(department.department_id)}
+          <td className="px-6 py-4">{department.department_id}</td>
+          <td className="px-6 py-4">{department.name}</td>
+          {actionLogo(department)}
+        </tr>
+      ));
+    } else if (selectedTable === "positionsdata") {
+      return (filteredData as Position[]).map((position) => (
+        <tr
+          key={position.position_id}
+          className="bg-white border-b dark:bg-gray-800">
+          {commonRowCheckbox(position.position_id)}
+          <td className="px-6 py-4">{position.position_id}</td>
+          <td className="px-6 py-4">{position.name}</td>
+          <td className="px-6 py-4">{position.department_name}</td>
+          {actionLogo(position)}
+        </tr>
+      ));
     } else if (selectedTable === "employeesdata") {
       return (filteredData as Employee[]).map((employee) => (
         <tr
@@ -1104,8 +1208,8 @@ const Table = () => {
           <td className="px-6 py-4">
             {formatPhoneNumberIntl(employee.phone || "")}
           </td>
-          <td className="px-6 py-4">{employee.department}</td>
-          <td className="px-6 py-4">{employee.position}</td>
+          <td className="px-6 py-4">{employee.department_name}</td>
+          <td className="px-6 py-4">{employee.position_name}</td>
           {actionLogo(employee)}
         </tr>
       ));
@@ -1214,6 +1318,8 @@ const Table = () => {
           <div className="flex space-x-2 overflow-x-auto">
             <TabButton tableName="visitorsdata" label="Visitors" />
             <TabButton tableName="companydata" label="Companies" />
+            <TabButton tableName="departmentsdata" label="Department" />
+            <TabButton tableName="positionsdata" label="Position" />
             <TabButton tableName="employeesdata" label="Employees" />
             <TabButton tableName="securitydata" label="Security" />
             <TabButton

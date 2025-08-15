@@ -4,7 +4,7 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 import { X } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
-import 'react-phone-number-input/style.css'
+import "react-phone-number-input/style.css";
 
 interface AddFormProps {
   isOpen: boolean;
@@ -81,6 +81,17 @@ const AddForm: React.FC<AddFormProps> = ({
     name: string;
   };
 
+  type Department = {
+    department_id: number;
+    name: string;
+  };
+
+  type Position = {
+    position_id: number;
+    name: string;
+    department_id: number;
+  };
+
   type Security = {
     security_id: number;
     security_name: string;
@@ -89,14 +100,29 @@ const AddForm: React.FC<AddFormProps> = ({
   const [formData, setFormData] = useState<Partial<FormDataType>>({});
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [securityPersonnel, setSecurityPersonnel] = useState<Security[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     if (isOpen && selectedTable === "usersdata") {
       fetchEmployees();
       fetchSecurityPersonnel();
     }
+    if (isOpen && selectedTable === "positionsdata") {
+      fetchDepartments();
+    }
+    if (isOpen && selectedTable === "employeesdata") {
+      fetchPositions();
+    }
   }, [isOpen, selectedTable]);
+
+  const filteredPositions = positions.filter(
+    (pos) => pos.department_id === selectedDepartmentId
+  );
 
   const fetchEmployees = async () => {
     try {
@@ -118,6 +144,29 @@ const AddForm: React.FC<AddFormProps> = ({
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get("/api/table/departmentsdata");
+      if (response.data) {
+        setDepartments(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
+  const fetchPositions = async () => {
+    try {
+      const response = await axios.get("/api/table/positionsdata");
+      if (response.data) {
+        setPositions(response.data.positions);
+        setDepartments(response.data.department);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
   const handleChange = async (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -136,9 +185,22 @@ const AddForm: React.FC<AddFormProps> = ({
       return;
     }
 
-    if ((name === "employee_id" || name === "security_id") && value === "") {
+    if (
+      (name === "employee_id" ||
+        name === "security_id" ||
+        name === "department_id" ||
+        name === "position_id" ||
+        name === "team_members_quantity") &&
+      value === ""
+    ) {
       value = null as unknown as string;
-    } else if (name === "employee_id" || name === "security_id") {
+    } else if (
+      name === "employee_id" ||
+      name === "security_id" ||
+      name === "department_id" ||
+      name === "position_id" ||
+      name === "team_members_quantity"
+    ) {
       value = parseInt(value, 10) as unknown as string;
     }
 
@@ -247,6 +309,7 @@ const AddForm: React.FC<AddFormProps> = ({
           </>
         );
 
+      // Updated employeesdata case in the renderForm function
       case "employeesdata":
         return (
           <>
@@ -283,8 +346,8 @@ const AddForm: React.FC<AddFormProps> = ({
               <PhoneInput
                 name="phone"
                 onChange={(value) => {
-                  setFormData(prev => ({ ...prev, phone: value || "" }));
-                }}                
+                  setFormData((prev) => ({ ...prev, phone: value || "" }));
+                }}
                 defaultCountry="ID"
                 countryCallingCodeEditable={false}
                 className="w-full"
@@ -292,31 +355,53 @@ const AddForm: React.FC<AddFormProps> = ({
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="department" className={labelClass}>
+              <label htmlFor="department_id" className={labelClass}>
                 Department
               </label>
-              <input
-                type="text"
-                id="department"
-                name="department"
+              <select
+                id="department_id"
+                name="department_id"
                 className={inputClass}
-                onChange={handleChange}
-                required
-              />
+                value={selectedDepartmentId ?? ""}
+                onChange={(e) => {
+                  const deptId = Number(e.target.value);
+                  setSelectedDepartmentId(deptId);
+                  // Reset position selection when department changes
+                  setFormData((prev) => ({
+                    ...prev,
+                    department_id: deptId,
+                    position_id: null,
+                  }));
+                }}
+                required>
+                <option value="">-- Select Department --</option>
+                {departments.map((dept) => (
+                  <option key={dept.department_id} value={dept.department_id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="mb-4">
-              <label htmlFor="position" className={labelClass}>
-                Position
-              </label>
-              <input
-                type="text"
-                id="position"
-                name="position"
-                className={inputClass}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            {selectedDepartmentId && (
+              <div className="mb-4">
+                <label htmlFor="position_id" className={labelClass}>
+                  Position
+                </label>
+                <select
+                  id="position_id"
+                  name="position_id"
+                  className={inputClass}
+                  onChange={handleChange}
+                  required>
+                  <option value="">-- Select Position --</option>
+                  {filteredPositions.map((pos) => (
+                    <option key={pos.position_id} value={pos.position_id}>
+                      {pos.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </>
         );
 
@@ -352,6 +437,62 @@ const AddForm: React.FC<AddFormProps> = ({
               required
             />
           </div>
+        );
+
+      case "departmentsdata":
+        return (
+          <div className="mb-4">
+            <label htmlFor="name" className={labelClass}>
+              Department Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              className={inputClass}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        );
+
+      case "positionsdata":
+        return (
+          <>
+            <div className="mb-4">
+              <label htmlFor="name" className={labelClass}>
+                Position Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                className={inputClass}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="department_id" className={labelClass}>
+                Department
+              </label>
+              <select
+                id="department_id"
+                name="department_id"
+                className={inputClass}
+                onChange={handleChange}
+                required>
+                <option value="">Select department</option>
+                {departments.map((department) => (
+                  <option
+                    key={department.department_id}
+                    value={department.department_id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
         );
 
       case "usersdata":

@@ -7,39 +7,73 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   const authResponse = await withAuth();
-
   if (authResponse instanceof Response) {
     return authResponse;
   }
 
   try {
-    const tableData = await prisma.employee.findMany();
-    return new Response(JSON.stringify(tableData), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const employeesRaw = await prisma.employee.findMany({
+      include: {
+        department: true,
+        position: true,
+      },
     });
+
+    // Format the employees data to match what the frontend expects
+    const employees = employeesRaw.map((employee) => ({
+      employee_id: employee.employee_id,
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone,
+      department_name: employee.department?.name || null,
+      position_name: employee.position?.name || null,
+      department_id: employee.department_id,
+      position_id: employee.position_id,
+    }));
+
+    const departments = await prisma.department.findMany({
+      select: {
+        department_id: true,
+        name: true,
+      },
+    });
+
+    const positions = await prisma.position.findMany({
+      select: {
+        position_id: true,
+        name: true,
+        department_id: true,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        employees: employees,
+        departments: departments,
+        positions: positions,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error fetching employees:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to fetch employees" }),
-      {
-        status: 500,
-      }
+    return NextResponse.json(
+      { error: "Failed to fetch employees" },
+      { status: 500 }
     );
   }
 }
 
 export async function POST(request: Request) {
   const authResponse = await withAuth();
-
   if (authResponse instanceof Response) {
     return authResponse;
   }
 
   try {
-    const { name, position, email, phone, department } = await request.json();
+    const { name, email, phone, department_id, position_id } =
+      await request.json();
 
-    if (!name || !position || !email || !phone || !department) {
+    if (!name || !email || !department_id || !position_id) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -53,10 +87,10 @@ export async function POST(request: Request) {
     const newEmployee = await prisma.employee.create({
       data: {
         name,
-        position,
         email,
         phone,
-        department,
+        department_id: Number(department_id),
+        position_id: Number(position_id),
       },
     });
 
@@ -75,7 +109,6 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const authResponse = await withAuth();
-
   if (authResponse instanceof Response) {
     return authResponse;
   }
