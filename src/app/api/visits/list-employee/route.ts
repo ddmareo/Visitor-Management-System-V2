@@ -37,7 +37,7 @@ export async function GET() {
       );
     }
 
-    if (!userWithEmployee?.employee?.department) {
+    if (!userWithEmployee?.employee?.department_id) {
       return NextResponse.json(
         { error: "Department information not found" },
         { status: 404 }
@@ -47,7 +47,7 @@ export async function GET() {
     const visits = await prisma.visit.findMany({
       where: {
         employee: {
-          department: userWithEmployee.employee.department,
+          department_id: userWithEmployee.employee.department_id,
         },
       },
       include: {
